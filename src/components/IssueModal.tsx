@@ -50,11 +50,9 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
   };
 
   const inputClass = (field?: string) =>
-    `w-full px-3.5 py-2.5 rounded-xl border text-body bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 ${
-      field && errors[field] ? 'border-destructive ring-1 ring-destructive/30' : 'border-input hover:border-muted-foreground/30'
-    }`;
+    `w-full px-3 py-2.5 sm:px-3.5 rounded-xl border text-body bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 ${field && errors[field] ? 'border-destructive ring-1 ring-destructive/30' : 'border-input hover:border-muted-foreground/30'}`;
 
-  const labelClass = "block text-body font-medium text-foreground mb-1.5";
+  const labelClass = "block text-sm sm:text-body font-medium text-foreground mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -62,7 +60,7 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-foreground/25 backdrop-blur-md"
+        className="fixed inset-0 bg-foreground/15 backdrop-blur-sm z-40"
         onClick={onClose}
       />
       <motion.div
@@ -70,7 +68,7 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-        className="relative bg-card shadow-modal w-full h-full max-w-none md:max-w-lg md:h-auto border border-border overflow-hidden rounded-none md:rounded-2xl"
+        className="relative z-50 bg-card shadow-modal w-full h-[90vh] md:h-auto max-w-sm sm:max-w-md md:max-w-lg border border-border overflow-y-auto rounded-none md:rounded-2xl max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
@@ -87,69 +85,80 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div>
-            <label htmlFor="issue-title" className={labelClass}>Issue Title <span className="text-destructive">*</span></label>
-            <input id="issue-title" value={title} onChange={e => { setTitle(e.target.value); setErrors(prev => ({ ...prev, title: '' })); }} placeholder="Describe the bug briefly..." className={inputClass('title')} />
-            {errors.title && (
-              <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.title}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="version-suffix" className={labelClass}>Version</label>
-            <div className="flex items-center gap-2">
-              <input value={yearPrefix} disabled className={`${inputClass()} w-28`} />
-              <input id="version-suffix" value={versionSuffix} onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }} placeholder="MM.DD" className={`${inputClass()} flex-1`} />
-            </div>
-            {errors.version && (
-              <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.version}</p>
-            )}
-          </div>
+        {/* Form: content scrolls, footer stays visible */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 flex flex-col h-full">
+          <div
+            className="flex-1 pr-1 space-y-5"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y',
+              overscrollBehavior: 'contain',
+              // no inner maxHeight; the modal container handles scrolling
+              paddingBottom: '1rem',
+            } as any}
+          >
             <div>
-              <label htmlFor="reporter" className={labelClass}>Reporter <span className="text-destructive">*</span></label>
-              <input id="reporter" value={reporter} onChange={e => { setReporter(e.target.value); setErrors(prev => ({ ...prev, reporter: '' })); }} placeholder="Your name" className={inputClass('reporter')} />
-              {errors.reporter && (
-                <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.reporter}</p>
+              <label htmlFor="issue-title" className={labelClass}>Issue Title <span className="text-destructive">*</span></label>
+              <input id="issue-title" value={title} onChange={e => { setTitle(e.target.value); setErrors(prev => ({ ...prev, title: '' })); }} placeholder="Describe the bug briefly..." className={inputClass('title')} />
+              {errors.title && (
+                <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.title}</p>
               )}
             </div>
-          </div>
 
-          <div>
-            <label className={labelClass}>Created Date</label>
-            <input value={new Date().toLocaleDateString('en-CA')} disabled className={`${inputClass()} opacity-50 cursor-not-allowed`} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="assignee" className={labelClass}>Assigned To</label>
-              <select id="assignee" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className={inputClass()}>
-                {DEVELOPERS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="version-suffix" className={labelClass}>Version</label>
+                <div className="flex items-center gap-2">
+                  <input value={yearPrefix} disabled className={`${inputClass()} w-28`} />
+                  <input id="version-suffix" value={versionSuffix} onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }} placeholder="MM.DD" className={`${inputClass()} flex-1`} />
+                </div>
+                {errors.version && (
+                  <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.version}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="reporter" className={labelClass}>Reporter <span className="text-destructive">*</span></label>
+                <input id="reporter" value={reporter} onChange={e => { setReporter(e.target.value); setErrors(prev => ({ ...prev, reporter: '' })); }} placeholder="Your name" className={inputClass('reporter')} />
+                {errors.reporter && (
+                  <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.reporter}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <label htmlFor="severity" className={labelClass}>Severity</label>
-              <select id="severity" value={severity} onChange={e => setSeverity(e.target.value as Severity)} className={inputClass()}>
-                {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
 
-          {/* Footer */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-border -mx-6 px-6 mt-6">
+            <div>
+              <label className={labelClass}>Created Date</label>
+              <input value={new Date().toLocaleDateString('en-CA')} disabled className={`${inputClass()} opacity-50 cursor-not-allowed`} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="assignee" className={labelClass}>Assigned To</label>
+                <select id="assignee" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className={inputClass()}>
+                  {DEVELOPERS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="severity" className={labelClass}>Severity</label>
+                <select id="severity" value={severity} onChange={e => setSeverity(e.target.value as Severity)} className={inputClass()}>
+                  {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            </div>
+
+          {/* Footer (always visible) */}
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-3 border-t border-border -mx-6 px-6 mt-4 bg-card">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-body font-medium rounded-xl border border-border text-foreground hover:bg-muted transition-colors focus-ring"
+              className="w-full sm:w-auto px-4 py-2.5 text-body font-medium rounded-xl border border-border text-foreground hover:bg-muted transition-colors focus-ring"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-5 py-2.5 text-body font-medium rounded-xl bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-200 focus-ring ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`w-full sm:w-auto px-5 py-2.5 text-body font-medium rounded-xl bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-200 focus-ring ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Issue'}
             </button>

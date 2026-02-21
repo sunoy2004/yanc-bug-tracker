@@ -3,6 +3,7 @@ import { useIssues } from '@/context/IssueContext';
 import { StatusBadge, SeverityLabel } from '@/components/StatusBadge';
 import { STATUSES, Status } from '@/types/issue';
 import { ChevronDown, ArrowUpDown, FileWarning, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type SortKey = 'createdAt' | 'severity' | 'title';
@@ -25,6 +26,9 @@ export function IssueTable({
   onSort: (key: SortKey) => void;
 }) {
   const { issues, updateIssue, deleteIssue } = useIssues();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -76,20 +80,20 @@ export function IssueTable({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">
                 <SortButton label="Issue" field="title" />
               </th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">Version</th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">Reporter</th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Version</th>
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Reporter</th>
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">
                 <SortButton label="Created" field="createdAt" />
               </th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">Status</th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">Assignee</th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Status</th>
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Assignee</th>
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">
                 <SortButton label="Severity" field="severity" />
               </th>
-              <th className="text-left px-5 py-3.5 text-table-header uppercase text-muted-foreground">Actions</th>
+              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -180,14 +184,7 @@ export function IssueTable({
                 <td className="px-5 py-4">
                   <button
                     aria-label={`Delete ${issue.title}`}
-                    onClick={async () => {
-                      if (!confirm(`Delete "${issue.title}"? This cannot be undone.`)) return;
-                      try {
-                        await deleteIssue(issue.id);
-                      } catch (err) {
-                        // handled in context
-                      }
-                    }}
+                    onClick={() => { setDeleteTarget({ id: issue.id, title: issue.title }); setDeletePassword(''); }}
                     className="text-destructive hover:opacity-80 transition-opacity"
                   >
                     <Trash2 size={16} />
@@ -222,14 +219,7 @@ export function IssueTable({
                   <SeverityLabel severity={issue.severity} />
                   <button
                     aria-label={`Delete ${issue.title}`}
-                    onClick={async () => {
-                      if (!confirm(`Delete "${issue.title}"? This cannot be undone.`)) return;
-                      try {
-                        await deleteIssue(issue.id);
-                      } catch (err) {
-                        // handled in context
-                      }
-                    }}
+                    onClick={() => { setDeleteTarget({ id: issue.id, title: issue.title }); setDeletePassword(''); }}
                     className="text-destructive hover:opacity-80 transition-opacity ml-2"
                   >
                     <Trash2 size={14} />
@@ -250,6 +240,57 @@ export function IssueTable({
           <FileWarning size={40} className="mb-3 opacity-40" />
           <p className="text-body-lg font-medium">No issues found</p>
           <p className="text-body mt-1">Try adjusting your search or filters</p>
+        </div>
+      )}
+      {/* Delete confirmation overlay */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-foreground/25 backdrop-blur-sm" onClick={() => { if (!isDeleting) setDeleteTarget(null); }} />
+          <div className="relative bg-card rounded-xl border border-border p-6 w-full max-w-sm shadow-modal">
+            <h3 className="text-section-header text-foreground mb-2">Confirm delete</h3>
+            <p className="text-body text-muted-foreground mb-4">To delete "<span className="font-medium text-foreground">{deleteTarget.title}</span>", enter the issue password.</p>
+            <label className="block text-sm text-muted-foreground mb-1">Password</label>
+            <input
+              value={deletePassword}
+              onChange={e => setDeletePassword(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground mb-4"
+              placeholder="Enter password"
+              disabled={isDeleting}
+              aria-label="Delete password"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { if (!isDeleting) setDeleteTarget(null); }}
+                className="px-4 py-2.5 rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!deleteTarget) return;
+                  setIsDeleting(true);
+                  try {
+                    if (deletePassword === deleteTarget.id) {
+                      await deleteIssue(deleteTarget.id);
+                      setDeleteTarget(null);
+                      toast.success('Issue deleted');
+                    } else {
+                      toast.error('Not authorized — incorrect password');
+                    }
+                  } catch (err) {
+                    // deleteIssue shows toast
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
