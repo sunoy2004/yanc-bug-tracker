@@ -108,9 +108,15 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="version-suffix" className={labelClass}>Version</label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <input value={yearPrefix} disabled className={`${inputClass()} w-28`} />
-                  <input id="version-suffix" value={versionSuffix} onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }} placeholder="MM.DD" className={`${inputClass()} flex-1`} />
+                  <input
+                    id="version-suffix"
+                    value={versionSuffix}
+                    onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }}
+                    placeholder="MM.DD"
+                    className={`${inputClass()} flex-1 min-w-0`}
+                  />
                 </div>
                 {errors.version && (
                   <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.version}</p>
