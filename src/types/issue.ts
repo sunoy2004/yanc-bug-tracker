@@ -1,4 +1,4 @@
-export type Severity = 'Low' | 'Medium' | 'Major' | 'Showstopper';
+export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
 export type Status = 'Open' | 'In Progress' | 'Resolved' | 'Reopen' | 'To Do';
 
 export interface Issue {
@@ -14,5 +14,5 @@ export interface Issue {
 }
 
 export const STATUSES: Status[] = ['Open', 'In Progress', 'Resolved', 'Reopen', 'To Do'];
-export const SEVERITIES: Severity[] = ['Low', 'Medium', 'Major', 'Showstopper'];
+export const SEVERITIES: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
 export const DEVELOPERS = ['Developer 1', 'Developer 2', 'Developer 3', 'Developer 4'];

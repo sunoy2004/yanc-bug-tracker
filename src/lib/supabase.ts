@@ -19,19 +19,38 @@ export async function getSupabase() {
   }
 
   try {
-    // Dynamically import the Supabase package at runtime using an indirect import
-    // to avoid Vite's static analysis / pre-bundling when the package isn't installed.
+    // First, try to dynamically import the package using the local node_module (if installed).
+    // This uses an indirect import to avoid bundler static analysis, but in some environments
+    // the browser can't resolve bare specifiers — handle that below.
     const pkg = ['@supabase', '/supabase-js'].join('');
-    // Use Function to perform import(p) at runtime without bundler detection.
     // @ts-ignore
-    const mod = await (new Function('p', 'return import(p)'))(pkg);
-    const { createClient } = mod as any;
-    const client = createClient(supabaseUrl!, supabaseAnonKey!);
-    window.__SUPABASE_CLIENT__ = client;
-    console.info('Supabase: connected');
-    return client;
+    try {
+      // Attempt indirect import of local package
+      const mod = await (new Function('p', 'return import(p)'))(pkg);
+      const { createClient } = mod as any;
+      const client = createClient(supabaseUrl!, supabaseAnonKey!);
+      window.__SUPABASE_CLIENT__ = client;
+      console.info('Supabase: connected (local package)');
+      return client;
+    } catch (localErr) {
+      console.warn('Supabase: local package import failed, trying CDN fallback...', localErr);
+      // Try CDN ESM fallback (works in browsers)
+      try {
+        const cdn = 'https://esm.sh/@supabase/supabase-js';
+        // @ts-ignore
+        const mod = await import(cdn);
+        const { createClient } = mod as any;
+        const client = createClient(supabaseUrl!, supabaseAnonKey!);
+        window.__SUPABASE_CLIENT__ = client;
+        console.info('Supabase: connected (cdn esm.sh)');
+        return client;
+      } catch (cdnErr) {
+        console.warn('Supabase: CDN import failed. Running in offline mode.', cdnErr);
+        return null;
+      }
+    }
   } catch (err) {
-    console.warn('Supabase: failed to initialize client (package may be missing). Running in offline mode.', err);
+    console.warn('Supabase: failed to initialize client (unexpected). Running in offline mode.', err);
     return null;
   }
 }

@@ -8,8 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 type SortKey = 'createdAt' | 'severity' | 'title';
 type SortDir = 'asc' | 'desc';
 
-const severityOrder: Record<string, number> = { Low: 0, Medium: 1, Major: 2, Showstopper: 3 };
-const legacySeverityMap: Record<string, string> = { High: 'Major', Critical: 'Showstopper' };
+const severityOrder: Record<string, number> = { Low: 0, Medium: 1, High: 2, Critical: 3 };
+const legacySeverityMap: Record<string, string> = { Major: 'High', Showstopper: 'Critical' };
 
 export function IssueTable({
   search,

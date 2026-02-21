@@ -13,7 +13,7 @@ create table public.issues (
   reporter text not null,
   created_at timestamptz default now(),
   assigned_to text not null,
-  severity text check (severity in ('Low','Medium','Major','Showstopper')) not null,
+  severity text check (severity in ('Low','Medium','High','Critical')) not null,
   status text check (status in ('Open','In Progress','Resolved','Reopen','To Do')) not null default 'Open',
   updated_at timestamptz default now()
 );

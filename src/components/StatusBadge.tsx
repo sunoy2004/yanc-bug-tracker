@@ -27,8 +27,8 @@ export function StatusBadge({ status, size = 'default' }: { status: Status; size
 const severityConfig: Record<Severity, { dot: string; text: string }> = {
   'Low': { dot: 'bg-severity-low', text: 'text-severity-low' },
   'Medium': { dot: 'bg-severity-medium', text: 'text-severity-medium' },
-  'Major': { dot: 'bg-severity-major', text: 'text-severity-major font-semibold' },
-  'Showstopper': { dot: 'bg-severity-showstopper', text: 'text-severity-showstopper font-bold' },
+  'High': { dot: 'bg-severity-high', text: 'text-severity-high font-semibold' },
+  'Critical': { dot: 'bg-severity-critical', text: 'text-severity-critical font-bold' },
 };
 
 export function SeverityLabel({ severity }: { severity: Severity }) {

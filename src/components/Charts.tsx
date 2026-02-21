@@ -14,8 +14,8 @@ const STATUS_COLORS: Record<Status, string> = {
 const SEVERITY_COLORS: Record<Severity, string> = {
   'Low': 'hsl(220, 10%, 52%)',
   'Medium': 'hsl(38, 92%, 50%)',
-  'Major': 'hsl(25, 95%, 53%)',
-  'Showstopper': 'hsl(347, 77%, 52%)',
+  'High': 'hsl(25, 95%, 53%)',
+  'Critical': 'hsl(347, 77%, 52%)',
 };
 
 const tooltipStyle = {

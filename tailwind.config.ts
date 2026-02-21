@@ -80,8 +80,8 @@ export default {
         severity: {
           low: "hsl(var(--severity-low))",
           medium: "hsl(var(--severity-medium))",
-          major: "hsl(var(--severity-major))",
-          showstopper: "hsl(var(--severity-showstopper))",
+          high: "hsl(var(--severity-high))",
+          critical: "hsl(var(--severity-critical))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
