@@ -13,7 +13,7 @@ steps:
     args:
       - -c
       - |
-        npm ci
+        npm install --legacy-peer-deps
         npm run build
 
   # Build the container image
