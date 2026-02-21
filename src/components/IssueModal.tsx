@@ -109,14 +109,21 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
               <div>
                 <label htmlFor="version-suffix" className={labelClass}>Version</label>
                 <div className="flex items-center gap-2 min-w-0">
-                  <input value={yearPrefix} disabled className={`${inputClass()} w-28`} />
-                  <input
-                    id="version-suffix"
-                    value={versionSuffix}
-                    onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }}
-                    placeholder="MM.DD"
-                    className={`${inputClass()} flex-1 min-w-0`}
-                  />
+                  <div className="flex items-center bg-background border border-input rounded-xl overflow-hidden w-full">
+                    <input
+                      value={yearPrefix}
+                      disabled
+                      aria-hidden
+                      className="px-3 py-2.5 w-28 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none border-none"
+                    />
+                    <input
+                      id="version-suffix"
+                      value={versionSuffix}
+                      onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }}
+                      placeholder="MM.DD"
+                      className="flex-1 px-3 py-2.5 bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none min-w-0 border-none"
+                    />
+                  </div>
                 </div>
                 {errors.version && (
                   <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.version}</p>
