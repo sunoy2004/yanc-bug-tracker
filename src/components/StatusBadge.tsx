@@ -1,28 +1,40 @@
 import { Status, Severity } from '@/types/issue';
+import { Circle, Clock, CheckCircle2, RotateCcw, ListTodo } from 'lucide-react';
 
-const statusMap: Record<Status, string> = {
-  'Open': 'bg-status-open/15 text-status-open border-status-open/30',
-  'In Progress': 'bg-status-in-progress/15 text-status-in-progress border-status-in-progress/30',
-  'Resolved': 'bg-status-resolved/15 text-status-resolved border-status-resolved/30',
-  'Reopen': 'bg-status-reopen/15 text-status-reopen border-status-reopen/30',
-  'To Do': 'bg-status-todo/15 text-status-todo border-status-todo/30',
+const statusConfig: Record<Status, { bg: string; text: string; border: string; icon: React.ElementType }> = {
+  'Open': { bg: 'bg-status-open/10', text: 'text-status-open', border: 'border-status-open/20', icon: Circle },
+  'In Progress': { bg: 'bg-status-in-progress/10', text: 'text-status-in-progress', border: 'border-status-in-progress/20', icon: Clock },
+  'Resolved': { bg: 'bg-status-resolved/10', text: 'text-status-resolved', border: 'border-status-resolved/20', icon: CheckCircle2 },
+  'Reopen': { bg: 'bg-status-reopen/10', text: 'text-status-reopen', border: 'border-status-reopen/20', icon: RotateCcw },
+  'To Do': { bg: 'bg-status-todo/10', text: 'text-status-todo', border: 'border-status-todo/20', icon: ListTodo },
 };
 
-export function StatusBadge({ status }: { status: Status }) {
+export function StatusBadge({ status, size = 'default' }: { status: Status; size?: 'default' | 'sm' }) {
+  const config = statusConfig[status];
+  const Icon = config.icon;
+  const sizeClass = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${statusMap[status]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${config.bg} ${config.text} ${config.border} ${sizeClass} transition-colors`}>
+      <Icon size={size === 'sm' ? 10 : 12} />
       {status}
     </span>
   );
 }
 
-const severityMap: Record<Severity, string> = {
-  'Low': 'text-severity-low',
-  'Medium': 'text-severity-medium',
-  'Major': 'text-severity-major font-semibold',
-  'Showstopper': 'text-severity-showstopper font-bold',
+const severityConfig: Record<Severity, { dot: string; text: string }> = {
+  'Low': { dot: 'bg-severity-low', text: 'text-severity-low' },
+  'Medium': { dot: 'bg-severity-medium', text: 'text-severity-medium' },
+  'Major': { dot: 'bg-severity-major', text: 'text-severity-major font-semibold' },
+  'Showstopper': { dot: 'bg-severity-showstopper', text: 'text-severity-showstopper font-bold' },
 };
 
 export function SeverityLabel({ severity }: { severity: Severity }) {
-  return <span className={`text-sm ${severityMap[severity]}`}>{severity}</span>;
+  const config = severityConfig[severity];
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-body ${config.text}`}>
+      <span className={`w-2 h-2 rounded-full ${config.dot}`} />
+      {severity}
+    </span>
+  );
 }
