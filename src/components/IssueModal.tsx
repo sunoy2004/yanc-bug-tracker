@@ -8,10 +8,12 @@ import { motion } from 'framer-motion';
 export function IssueModal({ onClose }: { onClose: () => void }) {
   const { addIssue } = useIssues();
   const [title, setTitle] = useState('');
-  const [version, setVersion] = useState('');
+  // Split version into year prefix (auto) and user-entered month.date suffix
+  const yearPrefix = `v${new Date().getFullYear()}.`;
+  const [versionSuffix, setVersionSuffix] = useState('');
   const [reporter, setReporter] = useState('');
   const [assignedTo, setAssignedTo] = useState(DEVELOPERS[0]);
-  const [severity, setSeverity] = useState<Severity>('Medium');
+  const [severity, setSeverity] = useState<Severity>('Low');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -19,6 +21,12 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
     const e: Record<string, string> = {};
     if (!title.trim()) e.title = 'Issue title is required';
     if (!reporter.trim()) e.reporter = 'Reporter name is required';
+    if (!versionSuffix.trim()) e.version = 'Version (MM.DD) is required';
+    else {
+      // simple format check mm.dd where mm and dd are 1-2 digits
+      const m = versionSuffix.trim();
+      if (!/^\d{1,2}\.\d{1,2}$/.test(m)) e.version = 'Version must be in MM.DD format';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -29,7 +37,8 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
     (async () => {
       setIsSubmitting(true);
       try {
-        await addIssue({ title: title.trim(), version: version.trim(), reporter: reporter.trim(), assignedTo, severity });
+        const combinedVersion = `${yearPrefix}${versionSuffix.trim()}`;
+        await addIssue({ title: title.trim(), version: combinedVersion, reporter: reporter.trim(), assignedTo, severity });
         toast.success('Issue created successfully!', { description: `"${title}" has been added to the tracker.` });
         onClose();
       } catch (err) {
@@ -89,10 +98,16 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="version" className={labelClass}>Version</label>
-              <input id="version" value={version} onChange={e => setVersion(e.target.value)} placeholder="v20xx.mm.dd" className={inputClass()} />
+          <div>
+            <label htmlFor="version-suffix" className={labelClass}>Version</label>
+            <div className="flex items-center gap-2">
+              <input value={yearPrefix} disabled className={`${inputClass()} w-28`} />
+              <input id="version-suffix" value={versionSuffix} onChange={e => { setVersionSuffix(e.target.value); setErrors(prev => ({ ...prev, version: '' })); }} placeholder="MM.DD" className={`${inputClass()} flex-1`} />
             </div>
+            {errors.version && (
+              <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.version}</p>
+            )}
+          </div>
             <div>
               <label htmlFor="reporter" className={labelClass}>Reporter <span className="text-destructive">*</span></label>
               <input id="reporter" value={reporter} onChange={e => { setReporter(e.target.value); setErrors(prev => ({ ...prev, reporter: '' })); }} placeholder="Your name" className={inputClass('reporter')} />
