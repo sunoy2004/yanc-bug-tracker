@@ -8,13 +8,22 @@ declare global {
   }
 }
 
+// Build-time envs injected by Vite (preferred)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
+// Runtime fallback: hosting platforms that can't provide Vite build-time vars
+// can inject these onto window (see deployment notes below).
+const runtimeSupabaseUrl = (typeof window !== 'undefined' && (window as any).__RUNTIME_SUPABASE_URL) as string | undefined;
+const runtimeSupabaseAnonKey = (typeof window !== 'undefined' && (window as any).__RUNTIME_SUPABASE_ANON_KEY) as string | undefined;
+
+const effectiveSupabaseUrl = supabaseUrl || runtimeSupabaseUrl;
+const effectiveSupabaseAnonKey = supabaseAnonKey || runtimeSupabaseAnonKey;
+
 export async function getSupabase() {
   if (window.__SUPABASE_CLIENT__) return window.__SUPABASE_CLIENT__;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.info('Supabase: no VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY configured. Running in offline mode.');
+  if (!effectiveSupabaseUrl || !effectiveSupabaseAnonKey) {
+    console.info('Supabase: no VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY configured (checked build-time and runtime). Running in offline mode.');
     return null;
   }
 
@@ -28,7 +37,7 @@ export async function getSupabase() {
       // Attempt indirect import of local package
       const mod = await (new Function('p', 'return import(p)'))(pkg);
       const { createClient } = mod as any;
-      const client = createClient(supabaseUrl!, supabaseAnonKey!);
+      const client = createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
       window.__SUPABASE_CLIENT__ = client;
       console.info('Supabase: connected (local package)');
       return client;
@@ -40,7 +49,7 @@ export async function getSupabase() {
         // @ts-ignore
         const mod = await import(cdn);
         const { createClient } = mod as any;
-        const client = createClient(supabaseUrl!, supabaseAnonKey!);
+        const client = createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
         window.__SUPABASE_CLIENT__ = client;
         console.info('Supabase: connected (cdn esm.sh)');
         return client;
