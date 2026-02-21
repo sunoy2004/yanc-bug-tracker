@@ -11,11 +11,13 @@ const statusConfig: Record<Status, { bg: string; text: string; border: string; i
 
 export function StatusBadge({ status, size = 'default' }: { status: Status; size?: 'default' | 'sm' }) {
   const config = statusConfig[status];
-  const Icon = config.icon;
+  // Fallback for unknown/invalid status
+  const safeConfig = config ?? { bg: 'bg-muted/10', text: 'text-muted-foreground', border: 'border-muted/20', icon: Circle };
+  const Icon = safeConfig.icon;
   const sizeClass = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${config.bg} ${config.text} ${config.border} ${sizeClass} transition-colors`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${safeConfig.bg} ${safeConfig.text} ${safeConfig.border} ${sizeClass} transition-colors`}>
       <Icon size={size === 'sm' ? 10 : 12} />
       {status}
     </span>
@@ -31,9 +33,10 @@ const severityConfig: Record<Severity, { dot: string; text: string }> = {
 
 export function SeverityLabel({ severity }: { severity: Severity }) {
   const config = severityConfig[severity];
+  const safe = config ?? { dot: 'bg-muted', text: 'text-muted-foreground' };
   return (
-    <span className={`inline-flex items-center gap-1.5 text-body ${config.text}`}>
-      <span className={`w-2 h-2 rounded-full ${config.dot}`} />
+    <span className={`inline-flex items-center gap-1.5 text-body ${safe.text}`}>
+      <span className={`w-2 h-2 rounded-full ${safe.dot}`} />
       {severity}
     </span>
   );

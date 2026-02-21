@@ -13,6 +13,7 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
   const [assignedTo, setAssignedTo] = useState(DEVELOPERS[0]);
   const [severity, setSeverity] = useState<Severity>('Medium');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -25,9 +26,18 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    addIssue({ title: title.trim(), version: version.trim(), reporter: reporter.trim(), assignedTo, severity });
-    toast.success('Issue created successfully!', { description: `"${title}" has been added to the tracker.` });
-    onClose();
+    (async () => {
+      setIsSubmitting(true);
+      try {
+        await addIssue({ title: title.trim(), version: version.trim(), reporter: reporter.trim(), assignedTo, severity });
+        toast.success('Issue created successfully!', { description: `"${title}" has been added to the tracker.` });
+        onClose();
+      } catch (err) {
+        // error toast handled by context
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   };
 
   const inputClass = (field?: string) =>
@@ -51,7 +61,7 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-        className="relative bg-card rounded-2xl shadow-modal w-full max-w-lg border border-border overflow-hidden"
+        className="relative bg-card shadow-modal w-full h-full max-w-none md:max-w-lg md:h-auto border border-border overflow-hidden rounded-none md:rounded-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
@@ -81,7 +91,7 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="version" className={labelClass}>Version</label>
-              <input id="version" value={version} onChange={e => setVersion(e.target.value)} placeholder="e.g. 1.2.0" className={inputClass()} />
+              <input id="version" value={version} onChange={e => setVersion(e.target.value)} placeholder="v20xx.mm.dd" className={inputClass()} />
             </div>
             <div>
               <label htmlFor="reporter" className={labelClass}>Reporter <span className="text-destructive">*</span></label>
@@ -123,9 +133,10 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 text-body font-medium rounded-xl bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-200 focus-ring"
+              disabled={isSubmitting}
+              className={`px-5 py-2.5 text-body font-medium rounded-xl bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-200 focus-ring ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              Submit Issue
+              {isSubmitting ? 'Submitting...' : 'Submit Issue'}
             </button>
           </div>
         </form>

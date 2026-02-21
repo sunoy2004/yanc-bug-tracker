@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Bug, Flag, BarChart3, Zap, PanelLeftClose, PanelLeft, User } from 'lucide-react';
+import { LayoutDashboard, Bug, Flag, BarChart3, Zap, PanelLeftClose, PanelLeft, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -8,26 +8,35 @@ const mainNav = [
   { to: '/issues', label: 'Issues', icon: Bug },
 ];
 
+// Secondary nav temporarily disabled — may be re-enabled later
 const secondaryNav = [
-  { to: '#', label: 'Milestones', icon: Flag },
-  { to: '#', label: 'Reports', icon: BarChart3 },
-  { to: '#', label: 'Sprints', icon: Zap },
+  {
+    to: '/status',
+    label: 'Status',
+    icon: BarChart3,
+    description:
+      'To Do — Issue recorded in the backlog or planned work; not yet started. ' +
+      'Open — Issue confirmed and available for assignment or scheduling. ' +
+      'In Progress — Someone is actively working on the issue. ' +
+      'Resolved — A fix or mitigation has been implemented; awaiting verification or deployment. ' +
+      'Reopen — Previously resolved but reopened because the problem persists or the fix failed verification.',
+  },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean; setMobileOpen: (v: boolean) => void }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
 
-  const renderNavItem = (item: { to: string; label: string; icon: React.ElementType }) => (
+  const renderNavItem = (item: { to: string; label: string; icon: React.ElementType; description?: string }) => (
     <NavLink
       key={item.label}
       to={item.to}
       end
       onClick={() => setMobileOpen(false)}
       className="group relative flex items-center gap-3 rounded-xl transition-all duration-200"
+      title={item.description}
     >
       {({ isActive: active }) => (
         <div className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-200 ${
@@ -67,6 +76,16 @@ export function AppSidebar() {
             BugTracker
           </motion.span>
         )}
+        {/* Mobile close button */}
+        <div className="ml-auto md:hidden">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-2 rounded-md hover:bg-muted transition-colors"
+            aria-label="Close navigation"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Main Nav */}
@@ -85,7 +104,7 @@ export function AppSidebar() {
         <div className="space-y-1">
           {!collapsed && (
             <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
-              Planning
+              FAQ & Help
             </p>
           )}
           {secondaryNav.map(renderNavItem)}
@@ -101,7 +120,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-sm font-medium text-sidebar-accent-foreground truncate">Admin User</p>
-              <p className="text-[11px] text-sidebar-muted truncate">admin@bugtracker.io</p>
+              <p className="text-[11px] text-sidebar-muted truncate">developer@yanc.in</p>
             </div>
           )}
         </div>
@@ -122,15 +141,6 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden p-2.5 rounded-xl bg-card text-foreground shadow-card border border-border"
-        aria-label="Open navigation"
-      >
-        <PanelLeft size={18} />
-      </button>
-
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileOpen && (

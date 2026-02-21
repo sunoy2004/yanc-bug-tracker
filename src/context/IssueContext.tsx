@@ -1,62 +1,78 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Issue, Status } from '@/types/issue';
-
-const STORAGE_KEY = 'bugtracker-issues';
-
-const seedIssues: Issue[] = [
-  { id: 'BUG-001', title: 'Login page not responsive on mobile', version: '1.2.0', reporter: 'Charles', createdAt: '2024-01-09', assignedTo: 'Developer 1', severity: 'Major', status: 'Reopen' },
-  { id: 'BUG-002', title: 'Live chat feature crashes on load', version: '1.1.5', reporter: 'Aravind', createdAt: '2024-01-12', assignedTo: 'Developer 2', severity: 'Medium', status: 'Reopen' },
-  { id: 'BUG-003', title: 'Dashboard charts not rendering data', version: '1.3.0', reporter: 'Kevin', createdAt: '2024-01-12', assignedTo: 'Developer 3', severity: 'Major', status: 'Open' },
-  { id: 'BUG-004', title: 'Marketing video review workflow broken', version: '1.2.1', reporter: 'Scott', createdAt: '2024-01-19', assignedTo: 'Developer 4', severity: 'Low', status: 'In Progress' },
-  { id: 'BUG-005', title: 'File upload timeout on large files', version: '1.1.0', reporter: 'Monica', createdAt: '2024-01-20', assignedTo: 'Developer 1', severity: 'Low', status: 'In Progress' },
-  { id: 'BUG-006', title: 'Like button not working on posts', version: '1.3.1', reporter: 'Charles', createdAt: '2024-01-23', assignedTo: 'Developer 2', severity: 'Showstopper', status: 'In Progress' },
-  { id: 'BUG-007', title: 'Mobile friendly screens missing icons', version: '1.2.0', reporter: 'Amritha', createdAt: '2024-01-23', assignedTo: 'Developer 3', severity: 'Medium', status: 'To Do' },
-  { id: 'BUG-008', title: 'Search results returning stale data', version: '1.3.0', reporter: 'Chaitanya', createdAt: '2024-01-23', assignedTo: 'Developer 4', severity: 'Medium', status: 'Open' },
-];
-
-function loadIssues(): Issue[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch { /* corrupted data */ }
-  return seedIssues;
-}
+import * as issueService from '@/services/issueService';
+import { toast } from 'sonner';
 
 interface IssueContextType {
   issues: Issue[];
-  addIssue: (issue: Omit<Issue, 'id' | 'status' | 'createdAt'>) => void;
-  updateStatus: (id: string, status: Status) => void;
+  loading: boolean;
+  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
+  updateIssue: (id: string, updates: Partial<Issue>) => Promise<void>;
+  deleteIssue: (id: string) => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 const IssueContext = createContext<IssueContextType | undefined>(undefined);
 
 export function IssueProvider({ children }: { children: React.ReactNode }) {
-  const [issues, setIssues] = useState<Issue[]>(loadIssues);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(issues));
-  }, [issues]);
-
-  const addIssue = useCallback((data: Omit<Issue, 'id' | 'status' | 'createdAt'>) => {
-    const id = `BUG-${String(Date.now()).slice(-4)}`;
-    const newIssue: Issue = {
-      ...data,
-      id,
-      status: 'Open',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setIssues(prev => [newIssue, ...prev]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await issueService.fetchIssues();
+      setIssues(data);
+    } catch (err: any) {
+      console.error('Failed to load issues', err);
+      toast.error('Failed to load issues');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const updateStatus = useCallback((id: string, status: Status) => {
-    setIssues(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const addIssue = useCallback(async (data: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const created = await issueService.createIssue({ ...data, status: 'Open' });
+      setIssues(prev => [created, ...prev]);
+      toast.success('Issue created');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create issue');
+      throw err;
+    }
+  }, []);
+
+  const updateIssue = useCallback(async (id: string, updates: Partial<Issue>) => {
+    try {
+      const updated = await issueService.updateIssue(id, updates);
+      setIssues(prev => prev.map(i => (i.id === id ? updated : i)));
+      toast.success('Issue updated');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update issue');
+      throw err;
+    }
+  }, []);
+
+  const deleteIssue = useCallback(async (id: string) => {
+    try {
+      await issueService.deleteIssue(id);
+      setIssues(prev => prev.filter(i => i.id !== id));
+      toast.success('Issue deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete issue');
+      throw err;
+    }
   }, []);
 
   return (
-    <IssueContext.Provider value={{ issues, addIssue, updateStatus }}>
+    <IssueContext.Provider value={{ issues, loading, addIssue, updateIssue, deleteIssue, refetch: load }}>
       {children}
     </IssueContext.Provider>
   );

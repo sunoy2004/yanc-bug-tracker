@@ -10,6 +10,7 @@ export interface Issue {
   assignedTo: string;
   severity: Severity;
   status: Status;
+  updatedAt?: string;
 }
 
 export const STATUSES: Status[] = ['Open', 'In Progress', 'Resolved', 'Reopen', 'To Do'];
