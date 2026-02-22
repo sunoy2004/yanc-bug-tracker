@@ -33,6 +33,11 @@ export function IssueTable({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [mobileStatusTarget, setMobileStatusTarget] = useState<{ id: string; title: string } | null>(null);
+  const touchHandledRef = useRef(false);
+  const lastTouchRef = useRef<number | null>(null);
+  const lastPointerType = useRef<string | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -42,6 +47,19 @@ export function IssueTable({
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Track mobile breakpoint
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else mq.addListener(onChange);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onChange);
+      else mq.removeListener(onChange);
+    };
   }, []);
 
   const filtered = issues
@@ -127,19 +145,45 @@ export function IssueTable({
                 <td className="px-5 py-4 text-body text-muted-foreground">{issue.createdAt}</td>
                 <td className="px-5 py-4 relative">
                   <button
-                    onClick={(e) => {
+                    onPointerDown={(e: React.PointerEvent) => {
+                      // remember pointer type
+                      lastPointerType.current = (e as any).pointerType ?? null;
+                      const isTouch = lastPointerType.current === 'touch' || navigator.maxTouchPoints > 0 && window.matchMedia('(hover: none)').matches;
+                      if (isTouch) {
+                        // open mobile bottom sheet
+                        e.preventDefault();
+                        setMobileStatusTarget({ id: issue.id, title: issue.title });
+                        return;
+                      }
+                      // mouse/pen: toggle dropdown
                       const newOpen = openDropdown === issue.id ? null : issue.id;
                       setOpenDropdown(newOpen);
                       if (newOpen) {
                         const btn = e.currentTarget as HTMLElement;
                         const rect = btn.getBoundingClientRect();
-                        // position dropdown below the button
                         setDropdownCoords({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
                       } else {
                         setDropdownCoords(null);
                       }
                     }}
-                    className="flex items-center gap-1.5 group focus-ring rounded-full"
+                    onClick={(e) => {
+                      // ignore click if handled by pointerdown touch
+                      if (lastPointerType.current === 'touch') {
+                        lastPointerType.current = null;
+                        return;
+                      }
+                      // fallback: if pointerdown didn't run, handle click for mouse
+                      const newOpen = openDropdown === issue.id ? null : issue.id;
+                      setOpenDropdown(newOpen);
+                      if (newOpen) {
+                        const btn = e.currentTarget as HTMLElement;
+                        const rect = btn.getBoundingClientRect();
+                        setDropdownCoords({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+                      } else {
+                        setDropdownCoords(null);
+                      }
+                    }}
+                    className="relative z-50 flex items-center gap-1.5 group focus-ring rounded-full"
                     aria-label={`Change status for ${issue.title}, currently ${issue.status}`}
                     aria-haspopup="listbox"
                   >
@@ -225,7 +269,13 @@ export function IssueTable({
               </div>
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <div className="max-w-[120px] text-right">
-                  <StatusBadge status={issue.status} size="sm" />
+                  <button
+                    onClick={() => setMobileStatusTarget({ id: issue.id, title: issue.title })}
+                    className="px-2 py-1 rounded-full focus-ring bg-card border border-border"
+                    aria-label={`Change status for ${issue.title}, currently ${issue.status}`}
+                  >
+                    <StatusBadge status={issue.status} size="sm" />
+                  </button>
                 </div>
                 <div className="flex items-center gap-2">
                   <SeverityLabel severity={issue.severity} />
@@ -301,6 +351,35 @@ export function IssueTable({
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Mobile status bottom sheet */}
+      {mobileStatusTarget && isMobile && (
+        <div className="fixed inset-0 z-60 flex items-end justify-center">
+          <div className="absolute inset-0 bg-foreground/30" onClick={() => setMobileStatusTarget(null)} />
+          <div className="relative w-full max-w-md bg-card border-t border-border rounded-t-xl p-4 shadow-modal">
+            <h3 className="text-section-header mb-2">Change status for</h3>
+            <p className="text-body text-muted-foreground mb-3">{mobileStatusTarget.title}</p>
+            <div className="space-y-2">
+              {STATUSES.map(s => (
+                <button
+                  key={s}
+                  onClick={async () => {
+                    try {
+                      await updateIssue(mobileStatusTarget.id, { status: s });
+                    } catch {}
+                    setMobileStatusTarget(null);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl bg-card border border-border hover:bg-muted"
+                >
+                  <StatusBadge status={s} />
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 text-right">
+              <button onClick={() => setMobileStatusTarget(null)} className="px-4 py-2 rounded-xl border border-border">Cancel</button>
             </div>
           </div>
         </div>
