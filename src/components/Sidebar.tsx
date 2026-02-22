@@ -64,14 +64,13 @@ export function AppSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean;
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? 'justify-center px-3' : ''}`}>
-        <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center shadow-lg shadow-sidebar-primary/20 shrink-0 overflow-hidden">
-          <img
-            src="/favicon2.png"
-            alt="BugTracker"
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).src = '/favicon.png'; }}
-          />
-        </div>
+        {/* Removed background container — keep the image element only */}
+        <img
+          src="/favicon2.png"
+          alt="BugTracker"
+          className="w-9 h-9 rounded-xl object-cover shrink-0"
+          onError={(e) => { (e.target as HTMLImageElement).src = '/favicon.png'; }}
+        />
         {!collapsed && (
           <motion.span
             initial={{ opacity: 0 }}
