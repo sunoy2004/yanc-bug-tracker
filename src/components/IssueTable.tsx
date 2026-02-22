@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useIssues } from '@/context/IssueContext';
 import { StatusBadge, SeverityLabel } from '@/components/StatusBadge';
 import { STATUSES, Status } from '@/types/issue';
@@ -31,6 +32,7 @@ export function IssueTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -74,7 +76,7 @@ export function IssueTable({
   );
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card shadow-card overflow-visible">
       {/* Desktop / Tablet table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
@@ -125,7 +127,18 @@ export function IssueTable({
                 <td className="px-5 py-4 text-body text-muted-foreground">{issue.createdAt}</td>
                 <td className="px-5 py-4 relative">
                   <button
-                    onClick={() => setOpenDropdown(openDropdown === issue.id ? null : issue.id)}
+                    onClick={(e) => {
+                      const newOpen = openDropdown === issue.id ? null : issue.id;
+                      setOpenDropdown(newOpen);
+                      if (newOpen) {
+                        const btn = e.currentTarget as HTMLElement;
+                        const rect = btn.getBoundingClientRect();
+                        // position dropdown below the button
+                        setDropdownCoords({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+                      } else {
+                        setDropdownCoords(null);
+                      }
+                    }}
                     className="flex items-center gap-1.5 group focus-ring rounded-full"
                     aria-label={`Change status for ${issue.title}, currently ${issue.status}`}
                     aria-haspopup="listbox"
@@ -133,39 +146,38 @@ export function IssueTable({
                     <StatusBadge status={issue.status} />
                     <ChevronDown
                       size={12}
-                      className={`text-muted-foreground transition-all ${
-                        openDropdown === issue.id ? 'rotate-180 opacity-100' : 'opacity-0 group-hover:opacity-60'
-                      }`}
+                      className={`text-muted-foreground transition-all ${openDropdown === issue.id ? 'rotate-180 opacity-100' : 'opacity-0 group-hover:opacity-60'}`}
                     />
                   </button>
-                  <AnimatePresence>
-                    {openDropdown === issue.id && (
-                      <motion.div
-                        ref={dropdownRef}
-                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 mt-1.5 z-20 bg-card border border-border rounded-xl shadow-dropdown py-1.5 min-w-[160px]"
-                        role="listbox"
-                        aria-label="Select status"
-                      >
-                        {STATUSES.map(s => (
-                          <button
-                            key={s}
-                            role="option"
-                            aria-selected={issue.status === s}
-                            onClick={async () => { await updateIssue(issue.id, { status: s }); setOpenDropdown(null); }}
-                            className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center gap-2 ${
-                              issue.status === s ? 'bg-accent' : 'hover:bg-muted'
-                            }`}
-                          >
-                            <StatusBadge status={s} size="sm" />
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {openDropdown === issue.id && dropdownCoords && createPortal(
+                    <div
+                      ref={dropdownRef}
+                      className="bg-card border border-border rounded-xl shadow-dropdown py-1.5"
+                      role="listbox"
+                      aria-label="Select status"
+                      style={{
+                        position: 'absolute',
+                        top: dropdownCoords.top,
+                        left: dropdownCoords.left,
+                        transform: 'translateY(6px)',
+                        minWidth: Math.max(160, dropdownCoords.width),
+                        zIndex: 9999,
+                      }}
+                    >
+                      {STATUSES.map(s => (
+                        <button
+                          key={s}
+                          role="option"
+                          aria-selected={issue.status === s}
+                          onClick={async () => { await updateIssue(issue.id, { status: s }); setOpenDropdown(null); setDropdownCoords(null); }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center gap-2 ${issue.status === s ? 'bg-accent' : 'hover:bg-muted'}`}
+                        >
+                          <StatusBadge status={s} size="sm" />
+                        </button>
+                      ))}
+                    </div>,
+                    document.body
+                  )}
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
