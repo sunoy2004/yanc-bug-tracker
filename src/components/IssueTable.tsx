@@ -117,7 +117,11 @@ export function IssueTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((issue, idx) => (
+            {filtered.map((issue, idx) => {
+              const d = new Date(issue.createdAt);
+              const date = isNaN(d.getTime()) ? issue.createdAt : d.toLocaleDateString('en-CA');
+              const time = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              return (
               <motion.tr
                 key={issue.id}
                 initial={{ opacity: 0, y: 4 }}
@@ -128,9 +132,9 @@ export function IssueTable({
                 }`}
               >
                 <td className="px-5 py-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-medium text-body-lg text-foreground">{issue.title}</span>
-                    <span className="text-[11px] font-mono text-muted-foreground">{issue.id}</span>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-body-lg text-foreground truncate">{issue.title}</span>
+                    <span className="text-[11px] font-mono text-muted-foreground mt-1 truncate break-words">{issue.id}</span>
                   </div>
                 </td>
                 <td className="px-5 py-4 text-body text-foreground">{issue.version}</td>
@@ -142,7 +146,12 @@ export function IssueTable({
                     <span className="text-body text-foreground">{issue.reporter}</span>
                   </div>
                 </td>
-                <td className="px-5 py-4 text-body text-muted-foreground">{issue.createdAt}</td>
+                <td className="px-5 py-4 text-body text-muted-foreground">
+                  <div className="flex flex-col">
+                    <span className="leading-tight">{date}</span>
+                    <span className="text-sm text-muted-foreground mt-0.5">{time}</span>
+                  </div>
+                </td>
                 <td className="px-5 py-4 relative">
                   <button
                     onPointerDown={(e: React.PointerEvent) => {
@@ -247,7 +256,8 @@ export function IssueTable({
                   </button>
                 </td>
               </motion.tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -258,9 +268,9 @@ export function IssueTable({
           <div key={issue.id} className="bg-card p-3 rounded-xl border border-border shadow-sm overflow-hidden">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 min-w-0">
+                <div className="flex flex-col min-w-0">
                   <span className="font-medium text-body-lg text-foreground truncate block min-w-0">{issue.title}</span>
-                  <span className="text-[11px] font-mono text-muted-foreground truncate">{issue.id}</span>
+                  <span className="text-[11px] font-mono text-muted-foreground mt-1 truncate break-words">{issue.id}</span>
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground flex flex-wrap gap-2">
                   <span className="truncate">Version: <span className="text-foreground">{issue.version}</span></span>
@@ -356,7 +366,7 @@ export function IssueTable({
         </div>
       )}
       {/* Mobile status bottom sheet */}
-      {mobileStatusTarget && isMobile && (
+      {mobileStatusTarget && (
         <div className="fixed inset-0 z-60 flex items-end justify-center">
           <div className="absolute inset-0 bg-foreground/30" onClick={() => setMobileStatusTarget(null)} />
           <div className="relative w-full max-w-md bg-card border-t border-border rounded-t-xl p-4 shadow-modal">
