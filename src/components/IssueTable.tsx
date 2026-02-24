@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useIssues } from '@/context/IssueContext';
 import { StatusBadge, SeverityLabel } from '@/components/StatusBadge';
 import { STATUSES, Status } from '@/types/issue';
-import { ChevronDown, ArrowUpDown, FileWarning, Trash2 } from 'lucide-react';
+import { ChevronDown, ArrowUpDown, FileWarning, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,8 +33,13 @@ export function IssueTable({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  // Assignee dropdown state
+  const [openAssignee, setOpenAssignee] = useState<string | null>(null);
+  const assigneeDropdownRef = useRef<HTMLDivElement>(null);
+  const [assigneeDropdownCoords, setAssigneeDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [mobileStatusTarget, setMobileStatusTarget] = useState<{ id: string; title: string } | null>(null);
+  const [mobileDetailTarget, setMobileDetailTarget] = useState<any | null>(null);
   const touchHandledRef = useRef(false);
   const lastTouchRef = useRef<number | null>(null);
   const lastPointerType = useRef<string | null>(null);
@@ -43,6 +48,9 @@ export function IssueTable({
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpenDropdown(null);
+      }
+      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target as Node)) {
+        setOpenAssignee(null);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -121,6 +129,8 @@ export function IssueTable({
               const d = new Date(issue.createdAt);
               const date = isNaN(d.getTime()) ? issue.createdAt : d.toLocaleDateString('en-CA');
               const time = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              const assigneeRaw = issue.assignedTo ?? '';
+              const assignee = assigneeRaw === 'YANC Developers' ? '' : assigneeRaw;
               return (
               <motion.tr
                 key={issue.id}
@@ -233,16 +243,59 @@ export function IssueTable({
                   )}
                 </td>
                 <td className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                      {(() => {
-                        const name = issue.assignedTo ?? '';
-                        const parts = name.split(' ').filter(Boolean);
-                        if (parts.length === 0) return '?';
-                        return parts.map(w => w[0]).join('');
-                      })()}
-                    </div>
-                    <span className="text-body text-foreground">{issue.assignedTo || 'Unassigned'}</span>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        const newOpen = openAssignee === issue.id ? null : issue.id;
+                        setOpenAssignee(newOpen);
+                        if (newOpen) {
+                          const btn = e.currentTarget as HTMLElement;
+                          const rect = btn.getBoundingClientRect();
+                          setAssigneeDropdownCoords({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+                        } else {
+                          setAssigneeDropdownCoords(null);
+                        }
+                      }}
+                      className="text-body text-foreground truncate whitespace-nowrap flex items-center gap-2 focus-ring"
+                      aria-haspopup="listbox"
+                      aria-label={`Change assignee for ${issue.title}, currently ${assignee || 'Unassigned'}`}
+                    >
+                      <span>{assignee || 'Unassigned'}</span>
+                      <ChevronDown size={12} className={`text-muted-foreground transition-transform ${openAssignee === issue.id ? 'rotate-180' : ''}`} />
+                    </button>
+                    {openAssignee === issue.id && assigneeDropdownCoords && createPortal(
+                      <div
+                        ref={assigneeDropdownRef}
+                        className="bg-card border border-border rounded-xl shadow-dropdown py-1.5"
+                        role="listbox"
+                        aria-label="Select assignee"
+                        style={{
+                          position: 'absolute',
+                          top: assigneeDropdownCoords.top,
+                          left: assigneeDropdownCoords.left,
+                          transform: 'translateY(6px)',
+                          minWidth: Math.max(160, assigneeDropdownCoords.width),
+                          zIndex: 9999,
+                        }}
+                      >
+                        {['Unassigned', 'Ram Charan', 'Sunoy Roy'].map(name => (
+                          <button
+                            key={name}
+                            onClick={async () => {
+                              try {
+                                await updateIssue(issue.id, { assignedTo: name === 'Unassigned' ? '' : name });
+                              } catch {}
+                              setOpenAssignee(null);
+                              setAssigneeDropdownCoords(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm transition-colors ${assignee === (name === 'Unassigned' ? '' : name) ? 'bg-accent' : 'hover:bg-muted'}`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>,
+                      document.body
+                    )}
                   </div>
                 </td>
                 <td className="px-5 py-4"><SeverityLabel severity={issue.severity} /></td>
@@ -265,7 +318,11 @@ export function IssueTable({
       {/* Mobile cards */}
       <div className="md:hidden p-3 space-y-3" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
         {filtered.map((issue) => (
-          <div key={issue.id} className="bg-card p-3 rounded-xl border border-border shadow-sm overflow-hidden">
+          <div
+            key={issue.id}
+            className="bg-card p-3 rounded-xl border border-border shadow-sm overflow-hidden cursor-pointer"
+            onClick={() => setMobileDetailTarget(issue)}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col min-w-0">
@@ -280,7 +337,7 @@ export function IssueTable({
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <div className="max-w-[120px] text-right">
                   <button
-                    onClick={() => setMobileStatusTarget({ id: issue.id, title: issue.title })}
+                    onClick={(e) => { e.stopPropagation(); setMobileStatusTarget({ id: issue.id, title: issue.title }); }}
                     className="px-2 py-1 rounded-full focus-ring bg-card border border-border"
                     aria-label={`Change status for ${issue.title}, currently ${issue.status}`}
                   >
@@ -291,7 +348,7 @@ export function IssueTable({
                   <SeverityLabel severity={issue.severity} />
                   <button
                     aria-label={`Delete ${issue.title}`}
-                    onClick={() => { setDeleteTarget({ id: issue.id, title: issue.title }); setDeletePassword(''); }}
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: issue.id, title: issue.title }); setDeletePassword(''); }}
                     className="text-destructive hover:opacity-80 transition-opacity ml-2"
                   >
                     <Trash2 size={14} />
@@ -306,6 +363,101 @@ export function IssueTable({
           </div>
         ))}
       </div>
+
+      {/* Mobile detail overlay */}
+      {mobileDetailTarget && (
+        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-foreground/30" onClick={() => setMobileDetailTarget(null)} />
+          <div className="relative w-full max-w-md sm:max-w-lg md:max-w-2xl h-[85vh] sm:h-auto bg-card rounded-t-xl sm:rounded-xl border-t border-border sm:border p-4 sm:p-6 shadow-modal overflow-auto">
+            <button
+              onClick={() => setMobileDetailTarget(null)}
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 text-muted-foreground p-1 rounded-full hover:bg-muted transition-colors"
+              aria-label="Close details"
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-section-header text-foreground">{mobileDetailTarget.title}</h3>
+                <div className="text-[11px] font-mono text-muted-foreground mt-1">{mobileDetailTarget.id}</div>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <div><span className="text-muted-foreground">Version: </span><span className="text-foreground">{mobileDetailTarget.version}</span></div>
+                <div><span className="text-muted-foreground">Reporter: </span><span className="text-foreground">{mobileDetailTarget.reporter}</span></div>
+                <div><span className="text-muted-foreground">Created: </span><span className="text-foreground">{mobileDetailTarget.createdAt}</span></div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2"><span className="text-muted-foreground">Status: </span><StatusBadge status={mobileDetailTarget.status} /></div>
+                <div><span className="text-muted-foreground">Assignee: </span><span className="text-foreground">{(mobileDetailTarget.assignedTo === 'YANC Developers' ? 'Unassigned' : mobileDetailTarget.assignedTo) || 'Unassigned'}</span></div>
+                <div><span className="text-muted-foreground">Severity: </span><SeverityLabel severity={mobileDetailTarget.severity} /></div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div>
+                <div className="text-sm text-muted-foreground mb-2">Change status</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {STATUSES.map(s => (
+                    <button
+                      key={s}
+                      onClick={async () => {
+                        try { await updateIssue(mobileDetailTarget.id, { status: s }); setMobileDetailTarget({ ...mobileDetailTarget, status: s }); }
+                        catch {}
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl bg-card border border-border hover:bg-muted"
+                    >
+                      <StatusBadge status={s} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-2">Change assignee</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {['Unassigned', 'Ram Charan', 'Sunoy Roy'].map(name => (
+                    <button
+                      key={name}
+                      onClick={async () => {
+                        try {
+                          await updateIssue(mobileDetailTarget.id, { assignedTo: name === 'Unassigned' ? '' : name });
+                          setMobileDetailTarget({ ...mobileDetailTarget, assignedTo: name === 'Unassigned' ? '' : name });
+                        } catch {}
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl bg-card border border-border hover:bg-muted"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col sm:flex-row sm:justify-end gap-3">
+              <button
+                onClick={() => { setMobileDetailTarget(null); }}
+                className="px-4 py-2.5 rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await deleteIssue(mobileDetailTarget.id);
+                    setMobileDetailTarget(null);
+                    toast.success('Issue deleted');
+                  } catch (err) {}
+                  setIsDeleting(false);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">

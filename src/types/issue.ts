@@ -15,4 +15,4 @@ export interface Issue {
 
 export const STATUSES: Status[] = ['Open', 'In Progress', 'Resolved', 'Reopen', 'To Do'];
 export const SEVERITIES: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
-export const DEVELOPERS = ['Developer 1', 'Developer 2', 'Developer 3', 'Developer 4'];
+export const DEVELOPERS = ['Unassigned', 'Ram Charan', 'Sunoy Roy'];

@@ -98,7 +98,7 @@ export function IssueModal({ onClose }: { onClose: () => void }) {
             } as any}
           >
             <div>
-              <label htmlFor="issue-title" className={labelClass}>Issue Title <span className="text-destructive">*</span></label>
+              <label htmlFor="issue-title" className={labelClass}>Issue Description <span className="text-destructive">*</span></label>
               <input id="issue-title" value={title} onChange={e => { setTitle(e.target.value); setErrors(prev => ({ ...prev, title: '' })); }} placeholder="Describe the bug briefly..." className={inputClass('title')} />
               {errors.title && (
                 <p className="flex items-center gap-1 mt-1.5 text-xs text-destructive"><AlertCircle size={12} />{errors.title}</p>
