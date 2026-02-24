@@ -96,24 +96,24 @@ export function IssueTable({
   return (
     <div className="rounded-2xl border border-border bg-card shadow-card overflow-visible">
       {/* Desktop / Tablet table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
+      <div className="hidden md:block overflow-auto" style={{ maxHeight: '70vh' }}>
+        <table className="w-full table-auto">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: '40%' }}>
                 <SortButton label="Issue" field="title" />
               </th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Version</th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Reporter</th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 110 }}>Version</th>
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 160 }}>Reporter</th>
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 170 }}>
                 <SortButton label="Created" field="createdAt" />
               </th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Status</th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Assignee</th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 120 }}>Status</th>
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 140 }}>Assignee</th>
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 100 }}>
                 <SortButton label="Severity" field="severity" />
               </th>
-              <th className="text-left px-5 py-3.5 text-table-header text-muted-foreground">Actions</th>
+              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 90 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -131,22 +131,22 @@ export function IssueTable({
                   idx % 2 === 1 ? 'bg-muted/30' : ''
                 }`}
               >
-                <td className="px-5 py-4">
+                <td className="px-3 py-3 align-top whitespace-normal break-words">
                   <div className="flex flex-col">
-                    <span className="font-medium text-body-lg text-foreground truncate">{issue.title}</span>
-                    <span className="text-[11px] font-mono text-muted-foreground mt-1 truncate break-words">{issue.id}</span>
+                    <span className="font-medium text-body-lg text-foreground break-words">{issue.title}</span>
+                    <span className="text-[11px] font-mono text-muted-foreground mt-1 break-words">{issue.id}</span>
                   </div>
                 </td>
-                <td className="px-5 py-4 text-body text-foreground">{issue.version}</td>
-                <td className="px-5 py-4">
+                <td className="px-3 py-3 text-body text-foreground align-top">{issue.version}</td>
+                <td className="px-3 py-3 align-top whitespace-normal break-words">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-[10px] font-semibold text-accent-foreground">
                       {issue.reporter ? issue.reporter.charAt(0) : '?'}
                     </div>
-                    <span className="text-body text-foreground">{issue.reporter}</span>
+                    <span className="text-body text-foreground break-words">{issue.reporter}</span>
                   </div>
                 </td>
-                <td className="px-5 py-4 text-body text-muted-foreground">
+                <td className="px-3 py-3 text-body text-muted-foreground align-top whitespace-normal break-words">
                   <div className="flex flex-col">
                     <span className="leading-tight">{date}</span>
                     <span className="text-sm text-muted-foreground mt-0.5">{time}</span>
@@ -263,7 +263,7 @@ export function IssueTable({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden p-3 space-y-3">
+      <div className="md:hidden p-3 space-y-3" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
         {filtered.map((issue) => (
           <div key={issue.id} className="bg-card p-3 rounded-xl border border-border shadow-sm overflow-hidden">
             <div className="flex items-start justify-between gap-3">
