@@ -441,14 +441,11 @@ export function IssueTable({
                 Close
               </button>
               <button
-                onClick={async () => {
-                  setIsDeleting(true);
-                  try {
-                    await deleteIssue(mobileDetailTarget.id);
-                    setMobileDetailTarget(null);
-                    toast.success('Issue deleted');
-                  } catch (err) {}
-                  setIsDeleting(false);
+                onClick={() => {
+                  // Open delete confirmation modal (same security flow as desktop)
+                  setDeletePassword('');
+                  setDeleteTarget({ id: mobileDetailTarget.id, title: mobileDetailTarget.title });
+                  setMobileDetailTarget(null);
                 }}
                 className="px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
               >
