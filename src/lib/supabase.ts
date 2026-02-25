@@ -28,22 +28,11 @@ export async function getSupabase() {
   }
 
   try {
-    // First, try to dynamically import the package using the local node_module (if installed).
-    // This uses an indirect import to avoid bundler static analysis, but in some environments
-    // the browser can't resolve bare specifiers — handle that below.
-    const pkg = ['@supabase', '/supabase-js'].join('');
-    // @ts-ignore
-    try {
-      // Attempt indirect import of local package
-      const mod = await (new Function('p', 'return import(p)'))(pkg);
-      const { createClient } = mod as any;
-      const client = createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
-      window.__SUPABASE_CLIENT__ = client;
-      console.info('Supabase: connected (local package)');
-      return client;
-    } catch (localErr) {
-      console.warn('Supabase: local package import failed, trying CDN fallback...', localErr);
-      // Try CDN ESM fallback (works in browsers)
+    // Prefer a CDN ESM import when running in the browser to avoid "bare specifier"
+    // errors on hosts that don't remap node-style imports. If CDN fails, fall back
+    // to attempting a local package import (useful for dev/bundled environments).
+    const isBrowser = typeof window !== 'undefined';
+    if (isBrowser) {
       try {
         const cdn = 'https://esm.sh/@supabase/supabase-js';
         // @ts-ignore
@@ -54,9 +43,23 @@ export async function getSupabase() {
         console.info('Supabase: connected (cdn esm.sh)');
         return client;
       } catch (cdnErr) {
-        console.warn('Supabase: CDN import failed. Running in offline mode.', cdnErr);
-        return null;
+        console.warn('Supabase: CDN import failed, attempting local package...', cdnErr);
+        // fallthrough to local attempt
       }
+    }
+    // Attempt indirect import of local package (works when bundler/node_modules are available)
+    const pkg = ['@supabase', '/supabase-js'].join('');
+    // @ts-ignore
+    try {
+      const mod = await (new Function('p', 'return import(p)'))(pkg);
+      const { createClient } = mod as any;
+      const client = createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
+      window.__SUPABASE_CLIENT__ = client;
+      console.info('Supabase: connected (local package)');
+      return client;
+    } catch (localErr) {
+      console.warn('Supabase: local package import failed. Running in offline mode.', localErr);
+      return null;
     }
   } catch (err) {
     console.warn('Supabase: failed to initialize client (unexpected). Running in offline mode.', err);
