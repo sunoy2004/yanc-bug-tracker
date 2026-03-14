@@ -396,7 +396,7 @@ export function IssueTable({
 
       {/* Mobile detail overlay */}
       {mobileDetailTarget && (
-        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4" aria-modal="true">
           <div className="absolute inset-0 bg-foreground/30" onClick={() => setMobileDetailTarget(null)} />
           <div className="relative w-full max-w-md sm:max-w-lg md:max-w-2xl h-[85vh] sm:max-h-[90vh] sm:h-auto bg-card rounded-t-xl sm:rounded-xl border-t border-border sm:border p-4 sm:p-6 shadow-modal overflow-auto min-w-0">
             <button
@@ -554,7 +554,7 @@ export function IssueTable({
       )}
       {/* Mobile status bottom sheet */}
       {mobileStatusTarget && (
-        <div className="fixed inset-0 z-60 flex items-end justify-center">
+        <div className="fixed inset-0 z-[1000] flex items-end justify-center">
           <div className="absolute inset-0 bg-foreground/30" onClick={() => setMobileStatusTarget(null)} />
           <div className="relative w-full max-w-md bg-card border-t border-border rounded-t-xl p-4 shadow-modal">
             <h3 className="text-section-header mb-2">Change status for</h3>
