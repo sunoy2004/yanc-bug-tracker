@@ -37,14 +37,14 @@ export function DashboardCards() {
     status === 'Total' ? issues.length : issues.filter(i => i.status === status).length;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 w-full min-w-0">
       {cardConfig.map(({ label, status, icon: Icon, gradient }, idx) => (
         <motion.div
           key={label}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: idx * 0.06, duration: 0.4 }}
-          className={`group relative bg-card rounded-2xl border border-border border-l-[3px] p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 overflow-hidden bg-gradient-to-br ${gradient}`}
+          className={`group relative bg-card rounded-2xl border border-border border-l-[3px] p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 overflow-hidden bg-gradient-to-br min-w-0 ${gradient}`}
         >
           <div className="absolute top-3 right-3 w-9 h-9 rounded-full bg-muted/50 flex items-center justify-center opacity-60 group-hover:opacity-80 transition-opacity">
             <Icon size={16} className="text-muted-foreground" />

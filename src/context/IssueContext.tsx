@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface IssueContextType {
   issues: Issue[];
   loading: boolean;
-  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
+  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateIssue: (id: string, updates: Partial<Issue>) => Promise<void>;
   deleteIssue: (id: string) => Promise<void>;
   refetch: () => Promise<void>;
@@ -37,7 +37,7 @@ export function IssueProvider({ children }: { children: React.ReactNode }) {
 
   const addIssue = useCallback(async (data: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const created = await issueService.createIssue({ ...data, status: 'Open' });
+      const created = await issueService.createIssue({ ...data, status: data.status ?? 'Open' });
       setIssues(prev => [created, ...prev]);
       toast.success('Issue created');
     } catch (err) {

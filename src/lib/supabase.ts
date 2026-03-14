@@ -1,6 +1,7 @@
 // Lazy supabase initializer to avoid build-time import errors when the package
 // is not installed or env vars are missing. Use getSupabase() to obtain the
-// client (or null if unavailable). Logs connection status to the console.
+// client (or null if unavailable). Single init promise + retries to reduce
+// intermittent connection failures.
 
 declare global {
   interface Window {
@@ -20,50 +21,61 @@ const runtimeSupabaseAnonKey = (typeof window !== 'undefined' && (window as any)
 const effectiveSupabaseUrl = supabaseUrl || runtimeSupabaseUrl;
 const effectiveSupabaseAnonKey = supabaseAnonKey || runtimeSupabaseAnonKey;
 
-export async function getSupabase() {
-  if (window.__SUPABASE_CLIENT__) return window.__SUPABASE_CLIENT__;
+const INIT_RETRIES = 3;
+const INIT_RETRY_DELAY_MS = 600;
+
+/** Single init promise so concurrent getSupabase() calls don't race or re-run init. */
+let initPromise: Promise<any> | null = null;
+
+function doInit(): Promise<any> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  if ((window as any).__SUPABASE_CLIENT__) return Promise.resolve((window as any).__SUPABASE_CLIENT__);
   if (!effectiveSupabaseUrl || !effectiveSupabaseAnonKey) {
-    console.info('Supabase: no VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY configured (checked build-time and runtime). Running in offline mode.');
-    return null;
+    console.info('Supabase: no VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY configured. Running in offline mode.');
+    return Promise.resolve(null);
   }
 
-  try {
-    // Prefer a CDN ESM import when running in the browser to avoid "bare specifier"
-    // errors on hosts that don't remap node-style imports. If CDN fails, fall back
-    // to attempting a local package import (useful for dev/bundled environments).
-    const isBrowser = typeof window !== 'undefined';
-    if (isBrowser) {
-      try {
-        const cdn = 'https://esm.sh/@supabase/supabase-js';
-        // @ts-ignore
-        const mod = await import(cdn);
-        const { createClient } = mod as any;
-        const client = createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
-        window.__SUPABASE_CLIENT__ = client;
-        console.info('Supabase: connected (cdn esm.sh)');
-        return client;
-      } catch (cdnErr) {
-        console.warn('Supabase: CDN import failed, attempting local package...', cdnErr);
-        // fallthrough to local attempt
-      }
-    }
-    // Attempt indirect import of local package (works when bundler/node_modules are available)
+  async function tryCreateClient(): Promise<any> {
+    // 1) Prefer local package (bundled app / dev) — most reliable when installed
     const pkg = ['@supabase', '/supabase-js'].join('');
-    // @ts-ignore
     try {
       const mod = await (new Function('p', 'return import(p)'))(pkg);
       const { createClient } = mod as any;
-      const client = createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
-      window.__SUPABASE_CLIENT__ = client;
-      console.info('Supabase: connected (local package)');
+      return createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
+    } catch {
+      // 2) Fallback: CDN ESM for environments that can't resolve bare specifier
+      const cdn = 'https://esm.sh/@supabase/supabase-js';
+      const mod = await import(/* @vite-ignore */ cdn);
+      const { createClient } = mod as any;
+      return createClient(effectiveSupabaseUrl!, effectiveSupabaseAnonKey!);
+    }
+  }
+
+  async function initWithRetry(attempt: number): Promise<any> {
+    try {
+      const client = await tryCreateClient();
+      (window as any).__SUPABASE_CLIENT__ = client;
+      console.info('Supabase: connected');
       return client;
-    } catch (localErr) {
-      console.warn('Supabase: local package import failed. Running in offline mode.', localErr);
+    } catch (err) {
+      if (attempt < INIT_RETRIES) {
+        console.warn(`Supabase: init attempt ${attempt + 1}/${INIT_RETRIES} failed, retrying in ${INIT_RETRY_DELAY_MS}ms...`, err);
+        await new Promise((r) => setTimeout(r, INIT_RETRY_DELAY_MS));
+        return initWithRetry(attempt + 1);
+      }
+      console.warn('Supabase: failed to initialize after retries. Running in offline mode.', err);
+      initPromise = null; // allow next getSupabase() to try again
       return null;
     }
-  } catch (err) {
-    console.warn('Supabase: failed to initialize client (unexpected). Running in offline mode.', err);
-    return null;
   }
+
+  return initWithRetry(0);
+}
+
+export async function getSupabase() {
+  if (typeof window === 'undefined') return null;
+  if ((window as any).__SUPABASE_CLIENT__) return (window as any).__SUPABASE_CLIENT__;
+  if (!initPromise) initPromise = doInit();
+  return initPromise;
 }
 

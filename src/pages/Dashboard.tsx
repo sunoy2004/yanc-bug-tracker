@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 const Dashboard = () => {
   return (
-    <div className="p-6 md:p-8 lg:p-10 space-y-8 max-w-[1400px]">
+    <div className="p-4 sm:p-6 md:p-8 lg:p-10 space-y-6 sm:space-y-8 max-w-[1400px] w-full min-w-0">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}

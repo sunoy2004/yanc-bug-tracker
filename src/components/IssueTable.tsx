@@ -7,8 +7,10 @@ import { ChevronDown, ArrowUpDown, FileWarning, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type SortKey = 'createdAt' | 'severity' | 'title';
+type SortKey = 'reportedAt' | 'severity' | 'title' | 'issueType';
 type SortDir = 'asc' | 'desc';
+
+const truncate = (s: string, len: number) => (s?.length > len ? s.slice(0, len) + '…' : s ?? '—');
 
 const severityOrder: Record<string, number> = { Low: 0, Medium: 1, High: 2, Critical: 3 };
 const legacySeverityMap: Record<string, string> = { Major: 'High', Showstopper: 'Critical' };
@@ -72,23 +74,32 @@ export function IssueTable({
 
   const filtered = issues
     .filter(issue => {
+      const q = search.toLowerCase();
       const matchesSearch =
-        issue.title.toLowerCase().includes(search.toLowerCase()) ||
-        issue.reporter.toLowerCase().includes(search.toLowerCase()) ||
-        issue.assignedTo.toLowerCase().includes(search.toLowerCase()) ||
-        issue.id.toLowerCase().includes(search.toLowerCase());
+        !q ||
+        (issue.title?.toLowerCase().includes(q)) ||
+        (issue.issueDescription?.toLowerCase().includes(q)) ||
+        (issue.reporter?.toLowerCase().includes(q)) ||
+        (issue.assignedTo?.toLowerCase().includes(q)) ||
+        (issue.id?.toLowerCase().includes(q)) ||
+        (issue.issueType?.toLowerCase().includes(q)) ||
+        (issue.device?.toLowerCase().includes(q)) ||
+        (issue.os?.toLowerCase().includes(q)) ||
+        (issue.browser?.toLowerCase().includes(q)) ||
+        (issue.otherBrowser?.toLowerCase().includes(q));
       const matchesFilter = filterStatus === 'All' || issue.status === filterStatus;
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1;
-      if (sortKey === 'createdAt') return dir * a.createdAt.localeCompare(b.createdAt);
+      if (sortKey === 'reportedAt') return dir * (a.reportedAt ?? a.createdAt).localeCompare(b.reportedAt ?? b.createdAt);
       if (sortKey === 'severity') {
         const aKey = a.severity in severityOrder ? a.severity : (legacySeverityMap[a.severity] ?? 'Low');
         const bKey = b.severity in severityOrder ? b.severity : (legacySeverityMap[b.severity] ?? 'Low');
         return dir * (severityOrder[aKey] - severityOrder[bKey]);
       }
-      return dir * a.title.localeCompare(b.title);
+      if (sortKey === 'issueType') return dir * (a.issueType ?? '').localeCompare(b.issueType ?? '');
+      return dir * (a.title ?? '').localeCompare(b.title ?? '');
     });
 
   const SortButton = ({ label, field }: { label: string; field: SortKey }) => (
@@ -102,69 +113,74 @@ export function IssueTable({
   );
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-card overflow-visible">
-      {/* Desktop / Tablet table */}
-      <div className="hidden md:block overflow-auto" style={{ maxHeight: '70vh' }}>
-        <table className="w-full table-auto">
+    <div className="rounded-2xl border border-border bg-card shadow-card overflow-visible w-full min-w-0 max-w-full">
+      {/* Desktop / Tablet table: horizontal scroll on narrow viewports */}
+      <div className="hidden md:block overflow-x-auto overflow-y-auto min-w-0 w-full" style={{ maxHeight: '70vh' }}>
+        <table className="w-full table-auto min-w-[1100px]" style={{ width: 'max(100%, 1100px)', tableLayout: 'auto' }}>
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: '40%' }}>
-                <SortButton label="Issue" field="title" />
-              </th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 110 }}>Version</th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 160 }}>Reporter</th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 170 }}>
-                <SortButton label="Created" field="createdAt" />
-              </th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 120 }}>Status</th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 140 }}>Assignee</th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 100 }}>
-                <SortButton label="Severity" field="severity" />
-              </th>
-              <th className="text-left px-3 py-2 text-table-header text-muted-foreground" style={{ width: 90 }}>Actions</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 88 }}><SortButton label="Type" field="issueType" /></th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm" style={{ minWidth: 110, maxWidth: 180 }}><SortButton label="Description" field="title" /></th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm" style={{ minWidth: 90, maxWidth: 140 }}>Expected</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm" style={{ minWidth: 90, maxWidth: 140 }}>Steps</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 80 }}>Reporter</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 70 }}>Version</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 64 }}>Device</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 66 }}>OS</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 72 }}>Browser</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 68 }}><SortButton label="Severity" field="severity" /></th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 90 }}>Status</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 88 }}>Assignee</th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 88 }}><SortButton label="Reported" field="reportedAt" /></th>
+              <th className="text-left px-2 py-2 md:px-3 text-table-header text-muted-foreground text-xs md:text-sm whitespace-nowrap" style={{ width: 64 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((issue, idx) => {
-              const d = new Date(issue.createdAt);
-              const date = isNaN(d.getTime()) ? issue.createdAt : d.toLocaleDateString('en-CA');
-              const time = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              const reportedAt = issue.reportedAt ?? issue.createdAt;
+              const d = new Date(reportedAt);
+              const dateStr = isNaN(d.getTime()) ? reportedAt : d.toLocaleDateString('en-CA');
               const assigneeRaw = issue.assignedTo ?? '';
               const assignee = assigneeRaw === 'YANC Developers' ? '' : assigneeRaw;
+              const browserDisplay = issue.browser === 'Other' ? (issue.otherBrowser || 'Other') : (issue.browser ?? '—');
               return (
               <motion.tr
                 key={issue.id}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
-                className={`border-b border-border last:border-0 transition-colors hover:bg-primary/[0.02] ${
+                onClick={() => setMobileDetailTarget(issue)}
+                className={`border-b border-border last:border-0 transition-colors hover:bg-primary/[0.02] cursor-pointer ${
                   idx % 2 === 1 ? 'bg-muted/30' : ''
                 }`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMobileDetailTarget(issue); } }}
+                aria-label={`View details for ${issue.issueDescription || issue.title || 'Issue'}`}
               >
-                <td className="px-3 py-3 align-top whitespace-normal break-words">
-                  <div className="flex flex-col">
-                    <span className="font-medium text-body-lg text-foreground break-words">{issue.title}</span>
-                    <span className="text-[11px] font-mono text-muted-foreground mt-1 break-words">{issue.id}</span>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-foreground align-top whitespace-nowrap text-xs md:text-sm">{issue.issueType ?? '—'}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 align-top max-w-[180px] min-w-0">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-body text-foreground truncate text-xs md:text-sm" title={issue.issueDescription || issue.title}>{truncate(issue.issueDescription || issue.title, 45)}</span>
+                    <span className="text-[10px] md:text-[11px] font-mono text-muted-foreground mt-0.5 truncate">{issue.id}</span>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-body text-foreground align-top">{issue.version}</td>
-                <td className="px-3 py-3 align-top whitespace-normal break-words">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-[10px] font-semibold text-accent-foreground">
-                      {issue.reporter ? issue.reporter.charAt(0) : '?'}
-                    </div>
-                    <span className="text-body text-foreground break-words">{issue.reporter}</span>
-                  </div>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 align-top max-w-[140px] min-w-0 text-xs md:text-sm text-foreground" title={issue.expectedResult ?? undefined}>
+                  <span className="truncate block">{truncate(issue.expectedResult ?? '—', 35)}</span>
                 </td>
-                <td className="px-3 py-3 text-body text-muted-foreground align-top whitespace-normal break-words">
-                  <div className="flex flex-col">
-                    <span className="leading-tight">{date}</span>
-                    <span className="text-sm text-muted-foreground mt-0.5">{time}</span>
-                  </div>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 align-top max-w-[140px] min-w-0 text-xs md:text-sm text-foreground" title={issue.stepsToReproduce ?? undefined}>
+                  <span className="truncate block">{truncate(issue.stepsToReproduce ?? '—', 35)}</span>
                 </td>
-                <td className="px-5 py-4 relative">
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-foreground align-top truncate max-w-[80px] text-xs md:text-sm" title={issue.reporter}>{issue.reporter ?? '—'}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-foreground align-top whitespace-nowrap text-xs md:text-sm">{issue.version ?? '—'}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-foreground align-top whitespace-nowrap text-xs md:text-sm">{issue.device ?? '—'}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-foreground align-top whitespace-nowrap text-xs md:text-sm">{issue.os ?? '—'}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-foreground align-top truncate max-w-[76px] text-xs md:text-sm" title={browserDisplay}>{browserDisplay}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3"><SeverityLabel severity={issue.severity} /></td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3 relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onPointerDown={(e: React.PointerEvent) => {
+                      e.stopPropagation();
                       // remember pointer type
                       lastPointerType.current = (e as any).pointerType ?? null;
                       const isTouch = lastPointerType.current === 'touch' || navigator.maxTouchPoints > 0 && window.matchMedia('(hover: none)').matches;
@@ -186,6 +202,7 @@ export function IssueTable({
                       }
                     }}
                     onClick={(e) => {
+                      e.stopPropagation();
                       // ignore click if handled by pointerdown touch
                       if (lastPointerType.current === 'touch') {
                         lastPointerType.current = null;
@@ -242,10 +259,11 @@ export function IssueTable({
                     document.body
                   )}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-2 py-2.5 md:px-3 md:py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="relative">
                     <button
                       onClick={(e) => {
+                        e.stopPropagation();
                         const newOpen = openAssignee === issue.id ? null : issue.id;
                         setOpenAssignee(newOpen);
                         if (newOpen) {
@@ -298,11 +316,11 @@ export function IssueTable({
                     )}
                   </div>
                 </td>
-                <td className="px-5 py-4"><SeverityLabel severity={issue.severity} /></td>
-                <td className="px-5 py-4">
+                <td className="px-2 py-2.5 md:px-3 md:py-3 text-body text-muted-foreground align-top whitespace-nowrap text-xs md:text-sm">{dateStr}</td>
+                <td className="px-2 py-2.5 md:px-3 md:py-3" onClick={(e) => e.stopPropagation()}>
                   <button
                     aria-label={`Delete ${issue.title}`}
-                    onClick={() => { setDeleteTarget({ id: issue.id, title: issue.title }); setDeletePassword(''); }}
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: issue.id, title: issue.title || issue.issueDescription?.slice(0, 50) || 'Issue' }); setDeletePassword(''); }}
                     className="text-destructive hover:opacity-80 transition-opacity"
                   >
                     <Trash2 size={16} />
@@ -316,30 +334,41 @@ export function IssueTable({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden p-3 space-y-3" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-        {filtered.map((issue) => (
+      <div className="md:hidden p-2 sm:p-3 space-y-2 sm:space-y-3 min-w-0" style={{ maxHeight: '70vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+        {filtered.map((issue) => {
+          const reportedAt = issue.reportedAt ?? issue.createdAt;
+          const browserDisplay = issue.browser === 'Other' ? (issue.otherBrowser || 'Other') : (issue.browser ?? '—');
+          return (
           <div
             key={issue.id}
-            className="bg-card p-3 rounded-xl border border-border shadow-sm overflow-hidden cursor-pointer"
+            className="bg-card p-3 sm:p-3 rounded-xl border border-border shadow-sm overflow-hidden cursor-pointer touch-manipulation active:bg-muted/30 transition-colors"
             onClick={() => setMobileDetailTarget(issue)}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col min-w-0">
-                  <span className="font-medium text-body-lg text-foreground truncate block min-w-0">{issue.title}</span>
+                  <span className="text-xs text-muted-foreground">{issue.issueType ?? '—'}</span>
+                  <span className="font-medium text-body-lg text-foreground truncate block min-w-0">{truncate(issue.issueDescription || issue.title, 40)}</span>
                   <span className="text-[11px] font-mono text-muted-foreground mt-1 truncate break-words">{issue.id}</span>
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground flex flex-wrap gap-2">
-                  <span className="truncate">Version: <span className="text-foreground">{issue.version}</span></span>
-                  <span className="truncate">Reporter: <span className="text-foreground">{issue.reporter}</span></span>
+                  <span className="truncate">Version: <span className="text-foreground">{issue.version ?? '—'}</span></span>
+                  <span className="truncate">Reporter: <span className="text-foreground">{issue.reporter ?? '—'}</span></span>
+                  <span className="truncate">{issue.device ?? '—'} · {issue.os ?? '—'} · {browserDisplay}</span>
                 </div>
+                {(issue.expectedResult || issue.stepsToReproduce) && (
+                  <div className="mt-1.5 text-xs text-muted-foreground space-y-0.5">
+                    {issue.expectedResult && <div className="truncate" title={issue.expectedResult}>Expected: {truncate(issue.expectedResult, 36)}</div>}
+                    {issue.stepsToReproduce && <div className="truncate" title={issue.stepsToReproduce}>Steps: {truncate(issue.stepsToReproduce, 36)}</div>}
+                  </div>
+                )}
               </div>
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <div className="max-w-[120px] text-right">
                   <button
-                    onClick={(e) => { e.stopPropagation(); setMobileStatusTarget({ id: issue.id, title: issue.title }); }}
-                    className="px-2 py-1 rounded-full focus-ring bg-card border border-border"
-                    aria-label={`Change status for ${issue.title}, currently ${issue.status}`}
+                    onClick={(e) => { e.stopPropagation(); setMobileStatusTarget({ id: issue.id, title: issue.title || issue.issueDescription }); }}
+                    className="px-2.5 py-1.5 rounded-full focus-ring bg-card border border-border touch-manipulation min-h-[36px]"
+                    aria-label={`Change status, currently ${issue.status}`}
                   >
                     <StatusBadge status={issue.status} size="sm" />
                   </button>
@@ -347,9 +376,9 @@ export function IssueTable({
                 <div className="flex items-center gap-2">
                   <SeverityLabel severity={issue.severity} />
                   <button
-                    aria-label={`Delete ${issue.title}`}
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: issue.id, title: issue.title }); setDeletePassword(''); }}
-                    className="text-destructive hover:opacity-80 transition-opacity ml-2"
+                    aria-label="Delete issue"
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: issue.id, title: issue.title || issue.issueDescription?.slice(0, 50) || 'Issue' }); setDeletePassword(''); }}
+                    className="text-destructive hover:opacity-80 transition-opacity ml-2 p-2 touch-manipulation min-h-[36px] min-w-[36px]"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -357,18 +386,19 @@ export function IssueTable({
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-              <span className="truncate">{issue.createdAt}</span>
-              <span className="text-foreground truncate">{issue.assignedTo}</span>
+              <span className="truncate">{reportedAt}</span>
+              <span className="text-foreground truncate">{issue.assignedTo === 'YANC Developers' ? 'Unassigned' : (issue.assignedTo ?? '—')}</span>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Mobile detail overlay */}
       {mobileDetailTarget && (
         <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-foreground/30" onClick={() => setMobileDetailTarget(null)} />
-          <div className="relative w-full max-w-md sm:max-w-lg md:max-w-2xl h-[85vh] sm:h-auto bg-card rounded-t-xl sm:rounded-xl border-t border-border sm:border p-4 sm:p-6 shadow-modal overflow-auto">
+          <div className="relative w-full max-w-md sm:max-w-lg md:max-w-2xl h-[85vh] sm:max-h-[90vh] sm:h-auto bg-card rounded-t-xl sm:rounded-xl border-t border-border sm:border p-4 sm:p-6 shadow-modal overflow-auto min-w-0">
             <button
               onClick={() => setMobileDetailTarget(null)}
               className="absolute top-3 right-3 sm:top-4 sm:right-4 text-muted-foreground p-1 rounded-full hover:bg-muted transition-colors"
@@ -379,21 +409,29 @@ export function IssueTable({
             </button>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-section-header text-foreground">{mobileDetailTarget.title}</h3>
+                <span className="text-xs text-muted-foreground">{mobileDetailTarget.issueType ?? '—'}</span>
+                <h3 className="text-section-header text-foreground">{mobileDetailTarget.issueDescription || mobileDetailTarget.title || '—'}</h3>
                 <div className="text-[11px] font-mono text-muted-foreground mt-1">{mobileDetailTarget.id}</div>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
-                <div><span className="text-muted-foreground">Version: </span><span className="text-foreground">{mobileDetailTarget.version}</span></div>
-                <div><span className="text-muted-foreground">Reporter: </span><span className="text-foreground">{mobileDetailTarget.reporter}</span></div>
-                <div><span className="text-muted-foreground">Created: </span><span className="text-foreground">{mobileDetailTarget.createdAt}</span></div>
+                <div><span className="text-muted-foreground">Version: </span><span className="text-foreground">{mobileDetailTarget.version ?? '—'}</span></div>
+                <div><span className="text-muted-foreground">Reporter: </span><span className="text-foreground">{mobileDetailTarget.reporter ?? '—'}</span></div>
+                <div><span className="text-muted-foreground">Reported: </span><span className="text-foreground">{mobileDetailTarget.reportedAt ?? mobileDetailTarget.createdAt ?? '—'}</span></div>
+                <div><span className="text-muted-foreground">Device: </span><span className="text-foreground">{mobileDetailTarget.device ?? '—'}</span></div>
+                <div><span className="text-muted-foreground">OS: </span><span className="text-foreground">{mobileDetailTarget.os ?? '—'}</span></div>
+                <div><span className="text-muted-foreground">Browser: </span><span className="text-foreground">{mobileDetailTarget.browser === 'Other' ? (mobileDetailTarget.otherBrowser || 'Other') : (mobileDetailTarget.browser ?? '—')}</span></div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2"><span className="text-muted-foreground">Status: </span><StatusBadge status={mobileDetailTarget.status} /></div>
                 <div><span className="text-muted-foreground">Assignee: </span><span className="text-foreground">{(mobileDetailTarget.assignedTo === 'YANC Developers' ? 'Unassigned' : mobileDetailTarget.assignedTo) || 'Unassigned'}</span></div>
                 <div><span className="text-muted-foreground">Severity: </span><SeverityLabel severity={mobileDetailTarget.severity} /></div>
               </div>
+            </div>
+            <div className="mt-4 space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Expected: </span><span className="text-foreground">{mobileDetailTarget.expectedResult ?? '—'}</span></div>
+              <div><span className="text-muted-foreground">Steps: </span><span className="text-foreground whitespace-pre-wrap">{mobileDetailTarget.stepsToReproduce ?? '—'}</span></div>
             </div>
             <div className="mt-4 space-y-3">
               <div>
