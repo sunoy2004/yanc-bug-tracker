@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { BacklogItem } from '@/types/backlog';
 import * as backlogService from '@/services/backlogService';
 import { toast } from 'sonner';
+import { useProject } from '@/context/ProjectContext';
 
 interface BacklogContextType {
   items: BacklogItem[];
@@ -17,11 +18,13 @@ const BacklogContext = createContext<BacklogContextType | undefined>(undefined);
 export function BacklogProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<BacklogItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { project } = useProject();
 
   const load = useCallback(async () => {
     setLoading(true);
+    setItems([]); // clear previous project data while loading new one
     try {
-      const data = await backlogService.fetchBacklogItems();
+      const data = await backlogService.fetchBacklogItems(project.tables.backlog);
       setItems(data);
     } catch (err) {
       console.error('Failed to load backlog items', err);
@@ -29,7 +32,7 @@ export function BacklogProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [project.tables.backlog]);
 
   useEffect(() => {
     load();
@@ -37,7 +40,7 @@ export function BacklogProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(async (input: Omit<BacklogItem, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const created = await backlogService.createBacklogItem({
+      const created = await backlogService.createBacklogItem(project.tables.backlog, {
         title: input.title,
         description: input.description,
         reporter: input.reporter,
@@ -52,11 +55,11 @@ export function BacklogProvider({ children }: { children: React.ReactNode }) {
       toast.error('Failed to create backlog item');
       throw err;
     }
-  }, []);
+  }, [project.tables.backlog]);
 
   const updateItem = useCallback(async (id: string, updates: Partial<BacklogItem>) => {
     try {
-      const updated = await backlogService.updateBacklogItem(id, {
+      const updated = await backlogService.updateBacklogItem(project.tables.backlog, id, {
         title: updates.title,
         description: updates.description,
         reporter: updates.reporter,
@@ -71,11 +74,11 @@ export function BacklogProvider({ children }: { children: React.ReactNode }) {
       toast.error('Failed to update backlog item');
       throw err;
     }
-  }, []);
+  }, [project.tables.backlog]);
 
   const deleteItem = useCallback(async (id: string) => {
     try {
-      await backlogService.deleteBacklogItem(id);
+      await backlogService.deleteBacklogItem(project.tables.backlog, id);
       setItems(prev => prev.filter(i => i.id !== id));
       toast.success('Backlog item deleted');
     } catch (err) {
@@ -83,7 +86,7 @@ export function BacklogProvider({ children }: { children: React.ReactNode }) {
       toast.error('Failed to delete backlog item');
       throw err;
     }
-  }, []);
+  }, [project.tables.backlog]);
 
   return (
     <BacklogContext.Provider value={{ items, loading, addItem, updateItem, deleteItem, refetch: load }}>

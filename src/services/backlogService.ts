@@ -49,7 +49,7 @@ export type UpdateBacklogInput = Partial<{
   version: string | null;
 }>;
 
-export const fetchBacklogItems = async (): Promise<BacklogItem[]> => {
+export const fetchBacklogItems = async (tableName: string): Promise<BacklogItem[]> => {
   const client = await getSupabase();
   if (!client) {
     console.info('fetchBacklogItems: no supabase client, returning empty list');
@@ -57,7 +57,7 @@ export const fetchBacklogItems = async (): Promise<BacklogItem[]> => {
   }
 
   const { data, error } = await client
-    .from<DbBacklogItem>('backlog_items')
+    .from<DbBacklogItem>(tableName)
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -65,7 +65,7 @@ export const fetchBacklogItems = async (): Promise<BacklogItem[]> => {
   return (data ?? []).map(mapDbToBacklog);
 };
 
-export const createBacklogItem = async (input: CreateBacklogInput): Promise<BacklogItem> => {
+export const createBacklogItem = async (tableName: string, input: CreateBacklogInput): Promise<BacklogItem> => {
   const client = await getSupabase();
   if (!client) throw new Error('No Supabase client');
 
@@ -79,7 +79,7 @@ export const createBacklogItem = async (input: CreateBacklogInput): Promise<Back
   };
 
   const { data, error } = await client
-    .from<DbBacklogItem>('backlog_items')
+    .from<DbBacklogItem>(tableName)
     .insert([payload])
     .select()
     .single();
@@ -88,7 +88,7 @@ export const createBacklogItem = async (input: CreateBacklogInput): Promise<Back
   return mapDbToBacklog(data);
 };
 
-export const updateBacklogItem = async (id: string, updates: UpdateBacklogInput): Promise<BacklogItem> => {
+export const updateBacklogItem = async (tableName: string, id: string, updates: UpdateBacklogInput): Promise<BacklogItem> => {
   const client = await getSupabase();
   if (!client) throw new Error('No Supabase client');
 
@@ -101,7 +101,7 @@ export const updateBacklogItem = async (id: string, updates: UpdateBacklogInput)
   if (updates.version !== undefined) payload.version = updates.version;
 
   const { data, error } = await client
-    .from<DbBacklogItem>('backlog_items')
+    .from<DbBacklogItem>(tableName)
     .update(payload)
     .eq('id', id)
     .select()
@@ -111,11 +111,11 @@ export const updateBacklogItem = async (id: string, updates: UpdateBacklogInput)
   return mapDbToBacklog(data);
 };
 
-export const deleteBacklogItem = async (id: string): Promise<void> => {
+export const deleteBacklogItem = async (tableName: string, id: string): Promise<void> => {
   const client = await getSupabase();
   if (!client) throw new Error('No Supabase client');
 
-  const { error } = await client.from('backlog_items').delete().eq('id', id);
+  const { error } = await client.from(tableName).delete().eq('id', id);
   if (error) throw error;
 };
 

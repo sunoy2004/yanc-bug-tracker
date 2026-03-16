@@ -1,6 +1,7 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Bug, ListTodo, BarChart3, Zap, PanelLeftClose, PanelLeft, User, X } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Bug, ListTodo, BarChart3, Zap, PanelLeftClose, PanelLeft, User, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { useProject } from '@/context/ProjectContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const mainNav = [
@@ -27,6 +28,8 @@ const secondaryNav = [
 export function AppSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean; setMobileOpen: (v: boolean) => void }) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { project, resetProject } = useProject();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -63,23 +66,31 @@ export function AppSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean;
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Logo */}
+      {/* Logo + project label */}
       <div className={`flex items-center gap-3 px-5 py-5 ${collapsed ? 'justify-center px-3' : ''}`}>
-        {/* Removed background container — keep the image element only */}
         <img
           src="/favicon2.png"
           alt="BugTracker"
           className="w-9 h-9 rounded-xl object-cover shrink-0"
-          onError={(e) => { (e.target as HTMLImageElement).src = '/favicon.png'; }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/favicon.png';
+          }}
         />
         {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-[15px] font-bold text-sidebar-accent-foreground tracking-tight"
-          >
-            BugTracker
-          </motion.span>
+          <div className="flex flex-col min-w-0">
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[15px] font-bold text-sidebar-accent-foreground tracking-tight truncate"
+            >
+              BugTracker
+            </motion.span>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-sidebar-accent/20 text-[11px] text-sidebar-accent-foreground truncate max-w-[180px]">
+                {project.label}
+              </span>
+            </div>
+          </div>
         )}
         {/* Mobile close button */}
         <div className="ml-auto md:hidden">
@@ -116,18 +127,31 @@ export function AppSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean;
         </div>
       </nav>
 
-      {/* User section */}
+      {/* User / logout section */}
       <div className="border-t border-sidebar-border p-3">
-        <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-sidebar-hover transition-colors cursor-pointer ${collapsed ? 'justify-center px-0' : ''}`}>
-          <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center shrink-0">
-            <User size={15} className="text-sidebar-foreground" />
-          </div>
+        <div className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-sidebar-hover transition-colors ${collapsed ? 'justify-center px-0' : ''}`}>
           {!collapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-sidebar-accent-foreground truncate">Admin User</p>
-              <p className="text-[11px] text-sidebar-muted truncate">developer@yanc.in</p>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center shrink-0">
+                <User size={15} className="text-sidebar-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-sidebar-accent-foreground">User</p>
+                <p className="text-[11px] text-sidebar-muted break-words">Project: {project.label}</p>
+              </div>
             </div>
           )}
+          <button
+            onClick={() => {
+              resetProject();
+              navigate('/login');
+            }}
+            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-accent-foreground"
+            aria-label="Log out to project selection"
+          >
+            <LogOut size={12} />
+            {!collapsed && <span>Logout</span>}
+          </button>
         </div>
       </div>
 

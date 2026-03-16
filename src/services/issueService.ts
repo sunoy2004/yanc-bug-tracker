@@ -65,7 +65,7 @@ function mapDbToIssue(row: Partial<DbIssue>): Issue {
   };
 }
 
-export const fetchIssues = async (): Promise<Issue[]> => {
+export const fetchIssues = async (tableName: string): Promise<Issue[]> => {
   const client = await getSupabase();
   if (!client) {
     console.info('fetchIssues: no supabase client, returning empty list');
@@ -73,7 +73,7 @@ export const fetchIssues = async (): Promise<Issue[]> => {
   }
 
   const { data, error } = await client
-    .from<DbIssue>('issues')
+    .from<DbIssue>(tableName)
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -84,7 +84,7 @@ export const fetchIssues = async (): Promise<Issue[]> => {
 /** Payload for creating an issue; new schema fields are required. */
 export type CreateIssueInput = Omit<Issue, 'id' | 'createdAt' | 'updatedAt'> & Required<Pick<Issue, 'issueType' | 'issueDescription' | 'expectedResult' | 'stepsToReproduce' | 'device' | 'os' | 'browser' | 'reportedAt'>>;
 
-export const createIssue = async (issueData: CreateIssueInput): Promise<Issue> => {
+export const createIssue = async (tableName: string, issueData: CreateIssueInput): Promise<Issue> => {
   const client = await getSupabase();
   if (!client) {
     throw new Error('No Supabase client');
@@ -113,7 +113,7 @@ export const createIssue = async (issueData: CreateIssueInput): Promise<Issue> =
   };
 
   const { data, error } = await client
-    .from<DbIssue>('issues')
+    .from<DbIssue>(tableName)
     .insert([payload])
     .select()
     .single();
@@ -122,7 +122,7 @@ export const createIssue = async (issueData: CreateIssueInput): Promise<Issue> =
   return mapDbToIssue(data);
 };
 
-export const updateIssue = async (id: string, updates: Partial<Issue>): Promise<Issue> => {
+export const updateIssue = async (tableName: string, id: string, updates: Partial<Issue>): Promise<Issue> => {
   const client = await getSupabase();
   if (!client) {
     throw new Error('No Supabase client');
@@ -146,7 +146,7 @@ export const updateIssue = async (id: string, updates: Partial<Issue>): Promise<
   if (updates.reportedAt !== undefined) payload.reported_at = updates.reportedAt;
 
   const { data, error } = await client
-    .from<DbIssue>('issues')
+    .from<DbIssue>(tableName)
     .update(payload)
     .eq('id', id)
     .select()
@@ -156,12 +156,12 @@ export const updateIssue = async (id: string, updates: Partial<Issue>): Promise<
   return mapDbToIssue(data);
 };
 
-export const deleteIssue = async (id: string): Promise<void> => {
+export const deleteIssue = async (tableName: string, id: string): Promise<void> => {
   const client = await getSupabase();
   if (!client) {
     throw new Error('No Supabase client');
   }
 
-  const { error } = await client.from('issues').delete().eq('id', id);
+  const { error } = await client.from(tableName).delete().eq('id', id);
   if (error) throw error;
 };

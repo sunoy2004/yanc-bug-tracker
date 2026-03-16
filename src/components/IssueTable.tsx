@@ -29,9 +29,6 @@ export function IssueTable({
   onSort: (key: SortKey) => void;
 }) {
   const { issues, updateIssue, deleteIssue } = useIssues();
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -320,7 +317,17 @@ export function IssueTable({
                 <td className="px-2 py-2.5 md:px-3 md:py-3" onClick={(e) => e.stopPropagation()}>
                   <button
                     aria-label={`Delete ${issue.title}`}
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: issue.id, title: issue.title || issue.issueDescription?.slice(0, 50) || 'Issue' }); setDeletePassword(''); }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const confirmed = window.confirm(`Delete "${issue.title || issue.issueDescription || 'this issue'}"?`);
+                      if (!confirmed) return;
+                      try {
+                        await deleteIssue(issue.id);
+                        toast.success('Issue deleted');
+                      } catch {
+                        // deleteIssue shows toast
+                      }
+                    }}
                     className="text-destructive hover:opacity-80 transition-opacity"
                   >
                     <Trash2 size={16} />
@@ -377,7 +384,17 @@ export function IssueTable({
                   <SeverityLabel severity={issue.severity} />
                   <button
                     aria-label="Delete issue"
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: issue.id, title: issue.title || issue.issueDescription?.slice(0, 50) || 'Issue' }); setDeletePassword(''); }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const confirmed = window.confirm(`Delete "${issue.title || issue.issueDescription || 'this issue'}"?`);
+                      if (!confirmed) return;
+                      try {
+                        await deleteIssue(issue.id);
+                        toast.success('Issue deleted');
+                      } catch {
+                        // deleteIssue shows toast
+                      }
+                    }}
                     className="text-destructive hover:opacity-80 transition-opacity ml-2 p-2 touch-manipulation min-h-[36px] min-w-[36px]"
                   >
                     <Trash2 size={14} />
@@ -479,11 +496,18 @@ export function IssueTable({
                 Close
               </button>
               <button
-                onClick={() => {
-                  // Open delete confirmation modal (same security flow as desktop)
-                  setDeletePassword('');
-                  setDeleteTarget({ id: mobileDetailTarget.id, title: mobileDetailTarget.title });
-                  setMobileDetailTarget(null);
+                onClick={async () => {
+                  const label = mobileDetailTarget.title || mobileDetailTarget.issueDescription || 'this issue';
+                  const confirmed = window.confirm(`Delete "${label}"?`);
+                  if (!confirmed) return;
+                  try {
+                    await deleteIssue(mobileDetailTarget.id);
+                    toast.success('Issue deleted');
+                  } catch {
+                    // deleteIssue shows toast
+                  } finally {
+                    setMobileDetailTarget(null);
+                  }
                 }}
                 className="px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
               >
@@ -499,57 +523,6 @@ export function IssueTable({
           <FileWarning size={40} className="mb-3 opacity-40" />
           <p className="text-body-lg font-medium">No issues found</p>
           <p className="text-body mt-1">Try adjusting your search or filters</p>
-        </div>
-      )}
-      {/* Delete confirmation overlay */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-foreground/25 backdrop-blur-sm" onClick={() => { if (!isDeleting) setDeleteTarget(null); }} />
-          <div className="relative bg-card rounded-xl border border-border p-6 w-full max-w-sm shadow-modal">
-            <h3 className="text-section-header text-foreground mb-2">Confirm delete</h3>
-            <p className="text-body text-muted-foreground mb-4">To delete "<span className="font-medium text-foreground">{deleteTarget.title}</span>", enter the issue password.</p>
-            <label className="block text-sm text-muted-foreground mb-1">Password</label>
-            <input
-              value={deletePassword}
-              onChange={e => setDeletePassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground mb-4"
-              placeholder="Enter password"
-              disabled={isDeleting}
-              aria-label="Delete password"
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => { if (!isDeleting) setDeleteTarget(null); }}
-                className="px-4 py-2.5 rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  if (!deleteTarget) return;
-                  setIsDeleting(true);
-                  try {
-                    if (deletePassword === deleteTarget.id) {
-                      await deleteIssue(deleteTarget.id);
-                      setDeleteTarget(null);
-                      toast.success('Issue deleted');
-                    } else {
-                      toast.error('Not authorized — incorrect password');
-                    }
-                  } catch (err) {
-                    // deleteIssue shows toast
-                  } finally {
-                    setIsDeleting(false);
-                  }
-                }}
-                className="px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
       {/* Mobile status bottom sheet */}
