@@ -1,11 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Bug, Flag, BarChart3, Zap, PanelLeftClose, PanelLeft, User, X } from 'lucide-react';
+import { LayoutDashboard, Bug, ListTodo, BarChart3, Zap, PanelLeftClose, PanelLeft, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const mainNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/issues', label: 'Issues', icon: Bug },
+  { to: '/backlog', label: 'Backlog', icon: ListTodo },
 ];
 
 // Secondary nav temporarily disabled — may be re-enabled later

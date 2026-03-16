@@ -4,12 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { IssueProvider } from "@/context/IssueContext";
+import { BacklogProvider } from "@/context/BacklogContext";
 import { AppSidebar } from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 import Dashboard from "./pages/Dashboard";
 import Issues from "./pages/Issues";
 import Status from "./pages/Status";
 import NotFound from "./pages/NotFound";
+import Backlog from "./pages/Backlog";
 
 const queryClient = new QueryClient();
 
@@ -18,9 +20,11 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <IssueProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
+        <BacklogProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </BacklogProvider>
       </IssueProvider>
     </TooltipProvider>
   </QueryClientProvider>
@@ -38,6 +42,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/issues" element={<Issues />} />
+          <Route path="/backlog" element={<Backlog />} />
           <Route path="/status" element={<Status />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
