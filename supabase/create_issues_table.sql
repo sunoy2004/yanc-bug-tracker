@@ -35,25 +35,6 @@ CREATE TABLE IF NOT EXISTS public.issues (
   browser text,
   other_browser text,
   reported_at timestamptz DEFAULT now(),
-
-  -- Constraints
-  CONSTRAINT issues_severity_check
-    CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
-
-  CONSTRAINT issues_status_check
-    CHECK (status IN ('Open', 'In Progress', 'Resolved', 'Reopen', 'To Do')),
-
-  CONSTRAINT issues_issue_type_check
-    CHECK (issue_type IS NULL OR issue_type IN ('Bug', 'Enhancement', 'Working as Expected')),
-
-  CONSTRAINT issues_device_check
-    CHECK (device IS NULL OR device IN ('Desktop', 'Tablet', 'Mobile')),
-
-  CONSTRAINT issues_os_check
-    CHECK (os IS NULL OR os IN ('iOS', 'Windows', 'Android')),
-
-  CONSTRAINT issues_browser_check
-    CHECK (browser IS NULL OR browser IN ('Chrome', 'Safari', 'Firefox', 'Other'))
 );
 
 -- Column comments for documentation

@@ -23,9 +23,9 @@ type DbIssue = {
 };
 
 const ISSUE_TYPE_VALUES: IssueType[] = ['Bug', 'Enhancement', 'Working as Expected'];
-const DEVICE_VALUES: Device[] = ['Desktop', 'Tablet', 'Mobile'];
-const OS_VALUES: OS[] = ['iOS', 'Windows', 'Android'];
-const BROWSER_VALUES: Browser[] = ['Chrome', 'Safari', 'Firefox', 'Other'];
+const DEVICE_VALUES: Device[] = ['Desktop', 'Laptop', 'Tablet', 'Mobile'];
+const OS_VALUES: OS[] = ['Windows', 'macOS', 'Linux', 'Android', 'iOS', 'Chrome OS'];
+const BROWSER_VALUES: Browser[] = ['Chrome', 'Safari', 'Firefox', 'Edge', 'Opera', 'Brave', 'Samsung Internet', 'Other'];
 const SEVERITY_VALUES: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
 const STATUS_VALUES: Status[] = ['Open', 'In Progress', 'Resolved', 'Reopen', 'To Do'];
 
