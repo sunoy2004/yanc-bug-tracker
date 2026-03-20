@@ -5,6 +5,7 @@ type DbIssue = {
   id: string;
   title: string | null;
   version: string | null;
+  remarks: string | null;
   reporter: string | null;
   created_at: string | null;
   assigned_to: string | null;
@@ -55,6 +56,7 @@ function mapDbToIssue(row: Partial<DbIssue>): Issue {
     os: optionalEnum(row.os, OS_VALUES),
     browser: optionalEnum(row.browser, BROWSER_VALUES),
     otherBrowser: row.other_browser ?? null,
+    remarks: row.remarks ?? null,
     reporter: row.reporter ?? 'Unknown',
     reportedAt: row.reported_at ?? row.created_at ?? undefined,
     severity: safeEnum(row.severity, SEVERITY_VALUES),
@@ -109,6 +111,7 @@ export const createIssue = async (tableName: string, issueData: CreateIssueInput
     os: issueData.os,
     browser: issueData.browser,
     other_browser: issueData.browser === 'Other' ? (issueData.otherBrowser ?? null) : null,
+    remarks: issueData.remarks ?? null,
     reported_at: issueData.reportedAt,
   };
 
@@ -143,6 +146,7 @@ export const updateIssue = async (tableName: string, id: string, updates: Partia
   if (updates.os !== undefined) payload.os = updates.os;
   if (updates.browser !== undefined) payload.browser = updates.browser;
   if (updates.otherBrowser !== undefined) payload.other_browser = updates.otherBrowser;
+  if (updates.remarks !== undefined) payload.remarks = updates.remarks;
   if (updates.reportedAt !== undefined) payload.reported_at = updates.reportedAt;
 
   const { data, error } = await client

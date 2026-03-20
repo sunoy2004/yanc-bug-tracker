@@ -30,6 +30,11 @@ export interface Issue {
   os?: OS | null;
   browser?: Browser | null;
   otherBrowser?: string | null;
+  /**
+   * Free-form note to explain fixes/changes made to this issue.
+   * Not shown in the table view; displayed in the row detail overlay.
+   */
+  remarks?: string | null;
   reporter: string;
   reportedAt?: string | null;
   severity: Severity;

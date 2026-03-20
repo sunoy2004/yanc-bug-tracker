@@ -39,6 +39,8 @@ export function IssueTable({
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [mobileStatusTarget, setMobileStatusTarget] = useState<{ id: string; title: string } | null>(null);
   const [mobileDetailTarget, setMobileDetailTarget] = useState<any | null>(null);
+  const [remarksDraft, setRemarksDraft] = useState<string>('');
+  const [isSavingRemarks, setIsSavingRemarks] = useState(false);
   const touchHandledRef = useRef(false);
   const lastTouchRef = useRef<number | null>(null);
   const lastPointerType = useRef<string | null>(null);
@@ -68,6 +70,11 @@ export function IssueTable({
       else mq.removeListener(onChange);
     };
   }, []);
+
+  // Keep remarks draft in sync with the currently-open row.
+  useEffect(() => {
+    setRemarksDraft(mobileDetailTarget?.remarks ?? '');
+  }, [mobileDetailTarget?.id]);
 
   const filtered = issues
     .filter(issue => {
@@ -449,6 +456,47 @@ export function IssueTable({
             <div className="mt-4 space-y-2 text-sm">
               <div><span className="text-muted-foreground">Expected: </span><span className="text-foreground">{mobileDetailTarget.expectedResult ?? '—'}</span></div>
               <div><span className="text-muted-foreground">Steps: </span><span className="text-foreground whitespace-pre-wrap">{mobileDetailTarget.stepsToReproduce ?? '—'}</span></div>
+              <div>
+                <label className="text-muted-foreground block text-sm mb-1">Remarks</label>
+                <textarea
+                  value={remarksDraft}
+                  onChange={(e) => setRemarksDraft(e.target.value)}
+                  placeholder="Add notes about this issue (fixes, changes, reasons)..."
+                  className="w-full min-h-[90px] resize-y rounded-xl bg-card border border-border px-3 py-2 text-sm focus-ring"
+                />
+                <div className="mt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRemarksDraft(mobileDetailTarget?.remarks ?? '')}
+                    disabled={isSavingRemarks}
+                    className="px-3 py-1.5 rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSavingRemarks}
+                    onClick={async () => {
+                      try {
+                        if (!mobileDetailTarget) return;
+                        setIsSavingRemarks(true);
+                        const trimmed = remarksDraft.trim();
+                        const newRemarks = trimmed.length ? trimmed : null;
+                        await updateIssue(mobileDetailTarget.id, { remarks: newRemarks });
+                        setMobileDetailTarget({ ...mobileDetailTarget, remarks: newRemarks });
+                        toast.success('Remarks saved');
+                      } catch {
+                        toast.error('Failed to save remarks');
+                      } finally {
+                        setIsSavingRemarks(false);
+                      }
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {isSavingRemarks ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="mt-4 space-y-3">
               <div>

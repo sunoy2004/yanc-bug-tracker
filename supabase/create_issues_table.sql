@@ -67,4 +67,10 @@ CREATE POLICY "Allow all operations"
   FOR ALL
   USING (true)
   WITH CHECK (true);
+  
+/*this one will be for remarks field in the issues table*/
+ALTER TABLE public.issues ADD COLUMN IF NOT EXISTS remarks text;
 
+ALTER TABLE public.issues_yanc_cote ADD COLUMN IF NOT EXISTS remarks text;
+ALTER TABLE public.issues_yanc_cms ADD COLUMN IF NOT EXISTS remarks text;
+ALTER TABLE public.issues_yanc_mentor_mentee ADD COLUMN IF NOT EXISTS remarks text;
